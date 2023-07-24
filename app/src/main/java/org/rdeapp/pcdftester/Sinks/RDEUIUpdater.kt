@@ -41,6 +41,7 @@ class RDEUIUpdater(
                 fragment.progressBarDistance.visibility = View.INVISIBLE
                 fragment.textViewTotalTime.visibility = View.VISIBLE
                 fragment.textViewTotalDistance.visibility = View.VISIBLE
+                fragment.textViewRDEPrompt.visibility = View.VISIBLE
                 started = true
             }
 
@@ -57,6 +58,14 @@ class RDEUIUpdater(
 
                 // Update the distance ProgressBars (total[0], urban[1], rural[2], motorway[3])
                 handleDistance(outputs[0], outputs[1], outputs[2], outputs[3])
+
+                // Check progress (urban[1], rural[2], motorway[3])
+                fragment.promptHandler.checkProgress(outputs[1], outputs[2], outputs[3])
+
+                val totalTime = outputs[4] + outputs[5] + outputs[6]  // Compute total test time
+
+                // Update the prompt ProgressBars (total[0])
+                fragment.promptHandler.handlePrompt(outputs[0], totalTime)
 
                 // Update the Dynamics-Markers (grey balls)
                 handleDynamics(
@@ -100,6 +109,8 @@ class RDEUIUpdater(
                         fragment.validityImageView.setImageResource(R.drawable.yellow_question)
                     }
                 }
+
+                //
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -254,6 +265,7 @@ class RDEUIUpdater(
             return "%.2f".format(value).replace(",", ".") + " $unit"
         }
     }
+
 }
 
 /**
@@ -268,8 +280,8 @@ class RDEHomeUpdater(private val inputChannel: ReceiveChannel<DoubleArray>, val 
                 try {
                     fragment.homeTotalRDETime.text = RDEUIUpdater.convertSeconds(
                         inputs[4].toLong() + inputs[5].toLong() +
-                            inputs[6]
-                                .toLong()
+                                inputs[6]
+                                    .toLong()
                     )
                 } catch (e: Exception) {
                     cancel()
