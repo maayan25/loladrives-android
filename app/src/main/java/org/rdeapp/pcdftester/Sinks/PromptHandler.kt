@@ -18,45 +18,51 @@ import java.util.Locale
  */
 class PromptHandler (
     private val fragment: RDEFragment
-) : TextToSpeech.OnInitListener{
+) : TextToSpeech.OnInitListener {
 
+    // Text to speech object
     private var tts: TextToSpeech? = TextToSpeech(fragment.requireActivity(), this)
+
+    // The distance that should be travelled in the RDE test
     private var expectedDistance = fragment.distance
+
+    // Used to analyse the trajectory to choose the next instructions for the driver
     private var trajectoryAnalyser = fragment.trajectoryAnalyser
+
+    // Variables to store information needed to determine the prompt
     private var speedChange: Double = 0.0
     private var drivingStyleText: String = ""
     private var desiredDrivingMode: DrivingMode = DrivingMode.URBAN
     private var sufficientDrivingMode: DrivingMode? = null
+
+    // Variables to store the current prompt
     private var currentText: String = ""
+    private var currentPromptType: PromptTypes? = null
+
     private var promptType: PromptTypes? = null
     private var constraints: Array<Double?> = arrayOf(null)
 
     /**
      * Update the prompt for improving the driving style according to the received RTLola results.
+     * @param totalDistance The total distance travelled so far.
      */
-    fun handlePrompt(totalDistance: Double) {
+    suspend fun handlePrompt(totalDistance: Double) {
         // Check if the RDE test is still valid
         handleInvalidRDE()
 
-        // Cases where the RDE test is still valid, but the driver should improve
-        if (totalDistance < expectedDistance / 3) {
-            val sufficientDrivingMode = trajectoryAnalyser.checkSufficient()
-            if (sufficientDrivingMode != null) {
-                promptType = PromptTypes.SUFFICIENCY
-            }
-        } else {
-            analyseTrajectory(totalDistance)
-        }
+        // Determine the next instruction according to analysis of the trajectory driven.
+        analyseTrajectory(totalDistance)
 
+        // Update the prompt according to the determined prompt type, and activate text to speech.
         generatePrompt()
         currentText = fragment.textViewRDEPrompt.text.toString()
     }
 
     /**
      * Check if the RDE test is invalid.
-     * If so, announce it to the driver, and move to the RDE settings fragment.
+     * If so, announce it to the driver, terminate the test, and move to the RDE settings fragment.
      */
-    private fun handleInvalidRDE() {
+    private suspend fun handleInvalidRDE() {
         if (trajectoryAnalyser.checkInvalid()) {
             fragment.textViewRDEPrompt.text = "This RDE test is invalid, and will be stopped now."
             fragment.textViewRDEPrompt.setTextColor(Color.RED)
@@ -68,6 +74,10 @@ class PromptHandler (
 
             Toast.makeText(fragment.requireActivity(),"Exiting...", Toast.LENGTH_LONG).show()
 
+            // Stop tracking the RDE test
+            (fragment.requireActivity() as MainActivity).stopTracking()
+
+            // Move to the RDE settings fragment
             fragment.requireActivity().supportFragmentManager.beginTransaction().replace(
                 R.id.frame_layout,
                 (fragment.requireActivity() as MainActivity).rdeSettingsFragment
@@ -76,29 +86,41 @@ class PromptHandler (
     }
 
     /**
-     * Get analysis trajectory using functions from the trajectoryAnalyser class.
-     * Set the desired driving mode and speed change.
+     * Analyse the trajectory driven so far by using functions from the TrajectoryAnalyser class.
+     *
+     * Check the constraints on the current driving style, and set the prompt type according to the
+     * analysis.
+     *
+     * For the 1st part of the test, only check if the driving style is sufficient.
+     * For the 2nd part of the test, also set the desired driving mode and speed change.
+     *
      * @param totalDistance The total distance travelled so far.
      */
     private fun analyseTrajectory(totalDistance: Double) {
-        desiredDrivingMode = trajectoryAnalyser.setDesiredDrivingMode() // set the desired driving mode accrued to the sufficient driving modes so far
-        speedChange = trajectoryAnalyser.computeSpeedChange() // get the speed change needed to improve the driving style
+        if (totalDistance >= 1/3 * expectedDistance) {
+            // set the desired driving mode accrued to the sufficient driving modes so far
+            desiredDrivingMode = trajectoryAnalyser.setDesiredDrivingMode()
+            // get the speed change needed to improve the driving style
+            speedChange = trajectoryAnalyser.computeSpeedChange()
+        }
 
+        // set the prompt type according to the driving mode and constraints.
         constraints = trajectoryAnalyser.getConstraints()
-        setPromptType(constraints) // set the prompt type according to the constraints
+        setPromptType(constraints, totalDistance)
     }
 
     /**
      * Set the prompt type according to the constraints.
      * @param constraints The constraints on the driving style.
+     * @param totalDistance The total distance travelled so far.
      */
-    private fun setPromptType(constraints: Array<Double?>) {
+    private fun setPromptType(constraints: Array<Double?>, totalDistance: Double) {
         val highSpeed = constraints[0]
         val veryHighSpeed = constraints[1]
         val stoppingTime = constraints[2]
         val averageUrbanSpeed = constraints[3]
 
-        when (desiredDrivingMode) {
+        when (trajectoryAnalyser.currentDrivingMode()) {
             DrivingMode.MOTORWAY -> {
                 if (highSpeed != null && highSpeed != 0.0 && promptType != PromptTypes.VERYHIGHSPEEDPERCENTAGE) {
                     promptType = PromptTypes.HIGHSPEEDPERCENTAGE
@@ -113,17 +135,26 @@ class PromptHandler (
                     promptType = PromptTypes.STOPPINGPERCENTAGE
                 }
             }
-
             else -> {
-                promptType = PromptTypes.DRIVINGSTYLE
+                if (totalDistance < expectedDistance / 3) {
+                    // Less than 1/3 of the expected distance is travelled, check if any driving style has become sufficient.
+                    val sufficientDrivingMode = trajectoryAnalyser.checkSufficient()
+                    if (sufficientDrivingMode != null) {
+                        promptType = PromptTypes.SUFFICIENCY
+                    }
+                } else {
+                    // More than 1/3 of the expected distance is travelled, check the driving style.
+                    promptType = PromptTypes.DRIVINGSTYLE
+                }
             }
         }
 
+        // Store the most recent prompt type
+        currentPromptType = promptType
     }
 
     /**
      * Generate the prompt according to the prompt type set from the analysis done on the trajectory.
-     * TODO: Add prompt functions for average urban speed, stopping percentage, high speed percentage, very high speed percentage
      */
     private fun generatePrompt() {
         when (promptType) {
@@ -135,6 +166,7 @@ class PromptHandler (
                 setDrivingStylePrompt(drivingStyleText)
                 setDrivingStyleAnalysis(trajectoryAnalyser.computeDuration())
             }
+            // Set prompt and analysis in case of constraint in Urban driving mode
             PromptTypes.AVERAGEURBANSPEED -> {
                 val averageUrbanSpeed = trajectoryAnalyser.getAverageUrbanSpeed()
                 setAverageUrbanSpeedPrompt(averageUrbanSpeed, constraints[3]!!)
@@ -142,6 +174,7 @@ class PromptHandler (
             PromptTypes.STOPPINGPERCENTAGE -> {
                 setStoppingPercentagePrompt(constraints[2]!!)
             }
+            // Set analysis in case of constraint in Motorway driving mode
             PromptTypes.HIGHSPEEDPERCENTAGE -> {
                 setDrivingStyleText()
                 setDrivingStylePrompt(drivingStyleText)
@@ -154,54 +187,66 @@ class PromptHandler (
             }
         }
 
-        // Only speak if the text has changed
-        if (currentText != fragment.textViewRDEPrompt.text.toString()) {
+        if (currentPromptType == PromptTypes.DRIVINGSTYLE) {
+            // Only speak if the text has changed
+            if (currentText != fragment.textViewRDEPrompt.text.toString()) {
+                speak()
+            }
+        }
+        // For all other prompt types, only speak if the prompt type has changed
+        else if (currentPromptType != promptType) {
             speak()
         }
         currentText = fragment.textViewRDEPrompt.text.toString()
     }
 
     /**
-     * Set the prompt text for the constraint of driving at 100km/h or more for at least 5 minutes.
-     * @param highSpeedDuration The duration of driving at 100km/h or more.
+     * Set the analysis text for the constraint of driving at 100km/h or more for at least 5 minutes.
+     * @param highSpeedDuration The duration of driving at > 100km/h.
      */
     private fun setHighSpeedPrompt(highSpeedDuration: Double){
-        fragment.textViewAnalysis.text = "You need to drive at 100km/h or more for at least $highSpeedDuration minutes."
+        fragment.textViewAnalysis.text =
+            "You need to drive at 100km/h or more for at least $highSpeedDuration more minutes."
         fragment.textViewAnalysis.setTextColor(Color.RED)
     }
 
     /**
-     * Set very high speed percentage prompt text.
+     * Set very high speed percentage analysis text.
      * @param veryHighSpeedPercentage The very high speed percentage.
      */
     private fun setVeryHighSpeedPrompt(veryHighSpeedPercentage: Double){
         when (veryHighSpeedPercentage) {
             0.025 -> {
-                fragment.textViewAnalysis.text = "You have driven at 145km/h or more for 2.5% of the motorway driving distance."
+                fragment.textViewAnalysis.text =
+                    "You have driven at 145km/h or more for 2.5% of the motorway driving distance."
                 fragment.textViewAnalysis.setTextColor(Color.RED)
             }
             0.015 -> {
-                fragment.textViewAnalysis.text = "You have driven at 145km/h or more for 1.5% of the motorway driving distance."
+                fragment.textViewAnalysis.text =
+                    "You have driven at 145km/h or more for 1.5% of the motorway driving distance."
                 fragment.textViewAnalysis.setTextColor(Color.RED)
             }
         }
     }
 
     /**
-     * Set the prompt text for the average urban speed.
+     * Set the prompt and analysis text for the average urban speed.
      * @param averageUrbanSpeed The average urban speed.
      * @param changeSpeed The change in speed needed to improve the driving style.
      */
     private fun setAverageUrbanSpeedPrompt(averageUrbanSpeed: Double, changeSpeed: Double){
         when {
             averageUrbanSpeed > 35 && averageUrbanSpeed < 40 -> {
-            fragment.textViewRDEPrompt.text = "Your average urban speed (${averageUrbanSpeed}km/h) is close to being invalid."
-            fragment.textViewAnalysis.text = "You are ${changeSpeed}km/h away from exceeding the upper bound."
+            fragment.textViewRDEPrompt.text =
+                "Your average urban speed (${averageUrbanSpeed}km/h) is close to being invalid."
+            fragment.textViewAnalysis.text =
+                "You are ${changeSpeed}km/h away from exceeding the upper bound."
             fragment.textViewRDEPrompt.setTextColor(Color.RED)
             }
             averageUrbanSpeed > 15 && averageUrbanSpeed < 20 -> {
-            fragment.textViewRDEPrompt.text = "Your average urban speed (${averageUrbanSpeed}km/h) is close to being invalid."
-            fragment.textViewAnalysis.text = "You are ${changeSpeed}km/h more than the lower bound."
+            fragment.textViewRDEPrompt.text =
+                "Your average urban speed (${averageUrbanSpeed}km/h) is close to being invalid."
+            fragment.textViewAnalysis.text = "You are ${changeSpeed}km/h above the lower bound."
             }
             changeSpeed < 0 -> {
             fragment.textViewRDEPrompt.text = "Your average urban speed (${averageUrbanSpeed}km/h) is too high."
@@ -223,43 +268,47 @@ class PromptHandler (
         if (stoppingPercentage > 0) {
             fragment.textViewRDEPrompt.text = "You are stopping too little. Try to stop more."
             fragment.textViewAnalysis.text =
-                "You need to stop for at least ${(-stoppingPercentage) * 100}% more of the urban time."
+                "You need to stop for at least ${stoppingPercentage * 100}% more of the urban time."
             fragment.textViewRDEPrompt.setTextColor(Color.RED)
         } else if (stoppingPercentage < 0) {
             fragment.textViewRDEPrompt.text =
                 "You are close to exceeding the stopping percentage. Try to stop less."
             fragment.textViewAnalysis.text =
-                "You are stopping ${stoppingPercentage * 100}% less than the upper bound."
+                "You are stopping ${-(stoppingPercentage) * 100}% less than the upper bound."
             fragment.textViewRDEPrompt.setTextColor(Color.RED)
-        } else {
+        }
+
+        // It should never be 0, but just in case.
+        else {
             fragment.textViewRDEPrompt.text = "Your stopping percentage is good."
             fragment.textViewRDEPrompt.setTextColor(Color.GREEN)
         }
     }
 
     /**
-     * Set the prompt for sufficient driving style.
+     * Set the prompt for a newly sufficient driving style.
      * @param sufficientDrivingMode The driving mode for which the driving style is sufficient.
      */
     private fun setSufficientPrompt(sufficientDrivingMode: DrivingMode) {
         when (sufficientDrivingMode) {
             DrivingMode.URBAN -> {
-                fragment.textViewRDEPrompt.text = "Your driving style is sufficient for urban driving"
+                fragment.textViewRDEPrompt.text = "Your urban driving is sufficient."
                 fragment.textViewRDEPrompt.setTextColor(Color.BLACK)
             }
             DrivingMode.RURAL -> {
-                fragment.textViewRDEPrompt.text = "Your driving style is sufficient for rural driving"
+                fragment.textViewRDEPrompt.text = "Your rural driving is sufficient."
                 fragment.textViewRDEPrompt.setTextColor(Color.BLACK)
             }
             DrivingMode.MOTORWAY -> {
-                fragment.textViewRDEPrompt.text = "Your driving style is sufficient for motorway driving"
+                fragment.textViewRDEPrompt.text = "Your motorway driving is sufficient."
                 fragment.textViewRDEPrompt.setTextColor(Color.BLACK)
             }
         }
     }
 
     /**
-     * Set the text for the prompt TextView according to the driving mode and speed change.
+     * Set the prompt text according to the driving mode and speed change.
+     * @param drivingStyleText The text for the desired driving mode.
      */
     private fun setDrivingStylePrompt(drivingStyleText: String) {
         // Calculate the speed change needed to improve the driving style
@@ -276,7 +325,7 @@ class PromptHandler (
     }
 
     /**
-     * Set the text for the prompt TextView according to the driving mode and speed change.
+     * Set the text for the prompt TextView according to the driving mode.
      */
     private fun setDrivingStyleText() {
         drivingStyleText = when (desiredDrivingMode) {
@@ -307,6 +356,7 @@ class PromptHandler (
 
     /**
      * Initialise the Text To Speech engine.
+     * @param status The status of the Text To Speech engine.
      */
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
@@ -319,6 +369,7 @@ class PromptHandler (
 
     /**
      * Speak the text in the RDE prompt TextView.
+     * If the SDK version is below LOLLIPOP, then a toast is shown that Text To Speech is not supported.
      */
     private fun speak() {
         val text = fragment.textViewRDEPrompt.text.toString()
