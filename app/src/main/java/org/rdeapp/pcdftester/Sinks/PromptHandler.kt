@@ -129,7 +129,7 @@ class PromptHandler (
                 }
             }
             DrivingMode.URBAN -> {
-                if (averageUrbanSpeed != null && promptType != PromptTypes.STOPPINGPERCENTAGE) {
+                if (averageUrbanSpeed != null && averageUrbanSpeed != 0.0 && promptType != PromptTypes.STOPPINGPERCENTAGE) {
                     promptType = PromptTypes.AVERAGEURBANSPEED
                 } else if (stoppingTime != null) {
                     promptType = PromptTypes.STOPPINGPERCENTAGE

@@ -33,7 +33,7 @@ class TrajectoryAnalyser(
         totalTime: Double,
         currentSpeed: Double,
         averageUrbanSpeed: Double
-    ){
+    ) {
         this.totalTime = totalTime
         this.currentSpeed = currentSpeed
         this.averageUrbanSpeed = averageUrbanSpeed
@@ -57,10 +57,9 @@ class TrajectoryAnalyser(
     /**
      * @return whether the test is invalid or has exceeded the time limit.
      */
-    fun checkInvalid() : Boolean {
+    fun checkInvalid(): Boolean {
         return isInvalid || totalTime > 120
     }
-
 
     /**
      * @return the Array of the constrains on motorway and urban driving modes. All return values
@@ -71,7 +70,12 @@ class TrajectoryAnalyser(
      * [3] = isAverageSpeedValid()
      */
     fun getConstraints(): Array<Double?> {
-        return arrayOf(isHighSpeedValid(), isVeryHighSpeedValid(), isStoppingTimeValid(), isAverageSpeedValid())
+        return arrayOf(
+            isHighSpeedValid(),
+            isVeryHighSpeedValid(),
+            isStoppingTimeValid(),
+            isAverageSpeedValid()
+        )
     }
 
     /**
@@ -114,7 +118,10 @@ class TrajectoryAnalyser(
      * Choose which should be the next driving mode
      * @return the chosen driving mode
      */
-    private fun chooseNextDrivingMode(firstDrivingMode: DrivingMode, secondDrivingMode: DrivingMode): DrivingMode {
+    private fun chooseNextDrivingMode(
+        firstDrivingMode: DrivingMode,
+        secondDrivingMode: DrivingMode
+    ): DrivingMode {
         return if (desiredDrivingMode == firstDrivingMode || currentDrivingMode() == firstDrivingMode) {
             firstDrivingMode
         } else {
@@ -136,8 +143,7 @@ class TrajectoryAnalyser(
             return null
         } else if (veryHighSpeedDuration == (0.025 * 90 * 0.29)) {
             return 0.025 // driven in > 145 km/h for more 1.5% of the min test time
-        }
-        else if (veryHighSpeedDuration == (0.015 * 90 * 0.29)) {
+        } else if (veryHighSpeedDuration == (0.015 * 90 * 0.29)) {
             return 0.015 // driven in > 145 km/h for more 1.5% of the min test time
         }
         return null
@@ -154,6 +160,7 @@ class TrajectoryAnalyser(
                 isInvalid = true
                 null
             }
+
             else -> highSpeed // the remaining time to be driven at 100km/h, or 0 if it is exceeded.
         }
     }
@@ -163,7 +170,9 @@ class TrajectoryAnalyser(
      */
     private fun canHighSpeedPass(): Double? {
         val highSpeedDuration = velocityProfile.getHighSpeed() // in minutes
-        return if (highSpeedDuration > 5) {
+        return if (totalTime < 10) {
+            0.0 // Don't check for high speed in the first 10 minutes of the test
+        } else if (highSpeedDuration > 5) {
             0.0
         } else {
             if (totalTime + (5 - highSpeedDuration) <= 120) {
@@ -179,12 +188,12 @@ class TrajectoryAnalyser(
      * @return the stopping percentage that can be increased or decreased to pass this condition
      *         or null if not required.
      */
-    private fun isStoppingTimeValid() : Double? {
+    private fun isStoppingTimeValid(): Double? {
         val currentStoppingTime: Double = velocityProfile.getStoppingTime() // in minutes
         val remainingTime = 120 - totalTime
 
         when {
-            currentStoppingTime > 0.3 * 120 && remainingTime < (0.3 * 120 - currentStoppingTime)-> {
+            currentStoppingTime > 0.3 * 120 && remainingTime < (0.3 * 120 - currentStoppingTime) -> {
                 // Stopping percentage is invalid and can't be decreased to pass
                 isInvalid = true
                 return null
@@ -194,19 +203,19 @@ class TrajectoryAnalyser(
                 isInvalid = true
                 return null
             }
-            currentStoppingTime.toDouble() >=  0.03 * 90 && currentStoppingTime.toDouble() <  0.06 * 90 -> {
+            currentStoppingTime >= 0.03 * 90 && currentStoppingTime < 0.06 * 90 -> {
                 // Stopping percentage is close to being valid but can be increased to pass
-                return  currentStoppingTime/90 - 0.06
+                return currentStoppingTime / 90 - 0.06
             }
-            currentStoppingTime.toDouble() >= 0.25 * 120 && currentStoppingTime.toDouble() < 0.3 * 120 -> {
+            currentStoppingTime >= 0.25 * 120 && currentStoppingTime < 0.3 * 120 -> {
                 // Stopping percentage is close to being invalid but can be decreased to pass
-                return currentStoppingTime/120 - 0.3
+                return currentStoppingTime / 120 - 0.3
             }
             currentStoppingTime > 0.3 * 90 && currentStoppingTime < 0.3 * 120 -> {
                 // Stopping percentage could be invalid but can be decreased to pass
-                return currentStoppingTime/120 - 0.3
+                return currentStoppingTime / 120 - 0.3
             }
-            0.06 * totalTime <= currentStoppingTime && currentStoppingTime <= 0.3 * totalTime ->{
+            0.06 * totalTime <= currentStoppingTime && currentStoppingTime <= 0.3 * totalTime -> {
                 return null
             }
             else -> {
@@ -227,16 +236,27 @@ class TrajectoryAnalyser(
         val requiredSpeed = urbanDistanceLeft / remainingTime
 
         when {
+            totalTime < 10 -> {
+                // Don't check for average speed in the first 10 minutes of the test
+                // because the average speed is not reliable.
+                return null
+            }
             averageUrbanSpeed < 15 && (15 > requiredSpeed || 40 < requiredSpeed) && remainingTime < 20 -> {
                 // Need to drive faster to make the average urban speed higher to pass but can't
                 isInvalid = true
                 return null
             }
-            averageUrbanSpeed > 40 && urbanDistanceLeft == 0.0 && remainingTime < 20-> {
-                // Need to slower drive make the average urban speed lower to pass but can't
+            averageUrbanSpeed > 40 && urbanDistanceLeft == 0.0 && remainingTime < 20 -> {
+                // Need to drive slower to make the average urban speed lower to pass but can't
                 isInvalid = true
                 return null
             }
+            averageUrbanSpeed > 46 && remainingTime < 20 -> {
+                // Need to drive slower to make the average urban speed lower to pass but can't
+                isInvalid = true
+                return null
+            }
+
             averageUrbanSpeed > 35 && averageUrbanSpeed < 40 -> {
                 // average speed is high and close to being invalid
                 return 40 - averageUrbanSpeed
@@ -295,14 +315,22 @@ class TrajectoryAnalyser(
     /**
      * Calculate the speed change required to improve the driving style.
      */
-    fun computeSpeedChange () : Double {
+    fun computeSpeedChange(): Double {
         val lowerThreshold: Double
         val upperThreshold: Double
 
         when (desiredDrivingMode) {
-            DrivingMode.URBAN -> { lowerThreshold = 0.0; upperThreshold = 60.0 }
-            DrivingMode.RURAL -> { lowerThreshold = 60.0; upperThreshold = 90.0 }
-            DrivingMode.MOTORWAY -> { lowerThreshold = 90.0; upperThreshold = 145.0 }
+            DrivingMode.URBAN -> {
+                lowerThreshold = 0.0; upperThreshold = 60.0
+            }
+
+            DrivingMode.RURAL -> {
+                lowerThreshold = 60.0; upperThreshold = 90.0
+            }
+
+            DrivingMode.MOTORWAY -> {
+                lowerThreshold = 90.0; upperThreshold = 145.0
+            }
         }
 
         return if (currentSpeed < lowerThreshold) {
@@ -319,18 +347,20 @@ class TrajectoryAnalyser(
      * Calculate how long the user to should drive in the certain driving mode to improve their
      * driving style.
      */
-    fun computeDuration() : Double {
-        when(desiredDrivingMode) {
+    fun computeDuration(): Double {
+        when (desiredDrivingMode) {
             DrivingMode.URBAN -> {
                 // Calculate the distance left to drive in urban mode with an average speed of 30 km/h
                 val urbanDistanceLeft = (0.29 - urbanProportion) * expectedDistance
                 return urbanDistanceLeft * 2
             }
+
             DrivingMode.RURAL -> {
                 // Calculate the distance left to drive in rural mode with an average speed of 75 km/h
                 val ruralDistanceLeft = (0.23 - ruralProportion) * expectedDistance
                 return ruralDistanceLeft * 0.8
             }
+
             DrivingMode.MOTORWAY -> {
                 // Calculate the distance left to drive in motorway mode with an average speed of 115 km/h
                 val motorwayDistanceLeft = (0.23 - motorwayProportion) * expectedDistance
