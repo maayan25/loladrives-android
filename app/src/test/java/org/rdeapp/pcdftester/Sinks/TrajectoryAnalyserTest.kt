@@ -4,11 +4,10 @@ import org.junit.Assert.*
 
 import org.junit.Before
 import org.junit.Test
-import kotlin.math.exp
 
 class TrajectoryAnalyserTest {
     private val velocityProfile: VelocityProfile = VelocityProfile()
-    private lateinit var trajectoryAnalyser: TrajectoryAnalyser;
+    private lateinit var trajectoryAnalyser: TrajectoryAnalyser
     private var expectedDistance: Double = 83.0
 
     private var initialState: List<Double> = listOf<Double>(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
@@ -243,7 +242,7 @@ class TrajectoryAnalyserTest {
             validState[3], validState[4], validState[5]
         )
         var desiredDrivingMode = trajectoryAnalyser.setDesiredDrivingMode()
-        assertTrue(desiredDrivingMode == DrivingMode.MOTORWAY)
+        assertTrue(desiredDrivingMode == DrivingMode.URBAN)
 
         trajectoryAnalyser.updateProgress(
             0.15 * expectedDistance,
@@ -252,7 +251,7 @@ class TrajectoryAnalyserTest {
             validState[3], validState[4], validState[5]
         )
         desiredDrivingMode = trajectoryAnalyser.setDesiredDrivingMode()
-        assertTrue(desiredDrivingMode == DrivingMode.MOTORWAY)  // TODO figure out why this is not URBAN
+        assertTrue(desiredDrivingMode == DrivingMode.URBAN)
     }
 
     /**
@@ -268,7 +267,7 @@ class TrajectoryAnalyserTest {
             validState[3], validState[4], validState[5]
         )
         val desiredDrivingMode = trajectoryAnalyser.setDesiredDrivingMode()
-        assertTrue(desiredDrivingMode == DrivingMode.MOTORWAY) // TODO figure out why this is not RURAL
+        assertTrue(desiredDrivingMode == DrivingMode.RURAL)
     }
 
     @Test
@@ -279,11 +278,58 @@ class TrajectoryAnalyserTest {
     fun currentDrivingMode() {
     }
 
+    /**
+     * Test that the computeSpeedChange return ths correct value when compare with the lower bound.
+     */
     @Test
     fun computeSpeedChange() {
+        trajectoryAnalyser.updateProgress(
+            validState[0],
+            0.15 * expectedDistance,
+            validState[2],
+            validState[3], 40.5 , validState[5]
+        )
+        trajectoryAnalyser.setDesiredDrivingMode() // RURAL is the desired driving mode
+        val speedChange = trajectoryAnalyser.computeSpeedChange()
+        assertTrue(speedChange == 60 - 40.5)
     }
 
+    /**
+     * Test the function computeSpeedChange returns 0.0 when current speed is in
+     * the desired driving mode.
+     */
+    @Test
+    fun computeSpeedChangeForNoChangeRequired() {
+        trajectoryAnalyser.updateProgress(
+            validState[0],
+            0.15 * expectedDistance,
+            validState[2],
+            validState[3], 75.0 , validState[5]
+        )
+        trajectoryAnalyser.setDesiredDrivingMode() // RURAL is the desired driving mode
+        val speedChange = trajectoryAnalyser.computeSpeedChange()
+        assertTrue(speedChange == 0.0)
+    }
+
+    /**
+     * Test that the computeDuration returns the correct time to drive in the desired driving style.
+     */
     @Test
     fun computeDuration() {
+        trajectoryAnalyser.updateProgress(
+            0.10 * expectedDistance, validState[1], validState[2],
+            validState[3], validState[4], validState[5]
+        )
+        trajectoryAnalyser.setDesiredDrivingMode() // URBAN is the desired driving mode
+        var duration = trajectoryAnalyser.computeDuration()
+        assertTrue(duration == 56.44)  // Check that the correct time is returned
+
+        trajectoryAnalyser.updateProgress(
+            0.2 * expectedDistance, validState[1], validState[2],
+            validState[3], validState[4], validState[5]
+        )
+        trajectoryAnalyser.setDesiredDrivingMode() // URBAN is the desired driving mode
+        duration = trajectoryAnalyser.computeDuration()
+        assertTrue(duration < 56.44)  // Check that the duration has decrease as urban distance has increased
     }
 }

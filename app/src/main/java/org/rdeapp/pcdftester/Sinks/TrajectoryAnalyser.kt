@@ -41,9 +41,10 @@ class TrajectoryAnalyser(
         velocityProfile.updateVelocityProfile(currentSpeed)
 
         // check the progress of the driving modes
-        urbanProportion = urbanDistance / 1000 / expectedDistance
-        ruralProportion = ruralDistance / 1000 / expectedDistance
-        motorwayProportion = motorwayDistance / 1000 / expectedDistance
+        // TODO: Check if the outputs from the validator for the distances are in km or m
+        urbanProportion = urbanDistance / expectedDistance
+        ruralProportion = ruralDistance  / expectedDistance
+        motorwayProportion = motorwayDistance / expectedDistance
 
         motorwayComplete = motorwayProportion > 0.43
         ruralComplete = ruralProportion > 0.43
@@ -246,7 +247,7 @@ class TrajectoryAnalyser(
                 isInvalid = true
                 return null
             }
-            averageUrbanSpeed > 40 && urbanDistanceLeft == 0.0 && remainingTime < 20 -> {
+            averageUrbanSpeed > 40 && (urbanDistanceLeft == 0.0 || (15 > requiredSpeed || 40 < requiredSpeed)) && remainingTime < 20 -> {
                 // Need to drive slower to make the average urban speed lower to pass but can't
                 isInvalid = true
                 return null
@@ -256,21 +257,12 @@ class TrajectoryAnalyser(
                 isInvalid = true
                 return null
             }
-
-            averageUrbanSpeed > 35 && averageUrbanSpeed < 40 -> {
-                // average speed is high and close to being invalid
+            averageUrbanSpeed > 35 && averageUrbanSpeed < 40 || averageUrbanSpeed > 40 -> {
+                // average speed is high and close to being invalid or exceeded the limit but can be decreased to pass
                 return 40 - averageUrbanSpeed
             }
-            averageUrbanSpeed > 15 && averageUrbanSpeed < 20 -> {
-                // average speed is low and close to being invalid
-                return 15 - averageUrbanSpeed
-            }
-            averageUrbanSpeed > 40 -> {
-                // average speed is invalid but can be decreased to pass
-                return 40 - averageUrbanSpeed
-            }
-            averageUrbanSpeed < 15 -> {
-                // average speed is invalid but can be increased to pass
+            averageUrbanSpeed > 15 && averageUrbanSpeed < 20 || averageUrbanSpeed < 15 -> {
+                // average speed is low and close to being invalid or exceeded the limit but can be increased to pass
                 return 15 - averageUrbanSpeed
             }
             averageUrbanSpeed > 15 && averageUrbanSpeed < 40 -> {
@@ -351,19 +343,19 @@ class TrajectoryAnalyser(
         when (desiredDrivingMode) {
             DrivingMode.URBAN -> {
                 // Calculate the distance left to drive in urban mode with an average speed of 30 km/h
-                val urbanDistanceLeft = (0.29 - urbanProportion) * expectedDistance
+                val urbanDistanceLeft = (0.44 - urbanProportion) * expectedDistance
                 return urbanDistanceLeft * 2
             }
 
             DrivingMode.RURAL -> {
                 // Calculate the distance left to drive in rural mode with an average speed of 75 km/h
-                val ruralDistanceLeft = (0.23 - ruralProportion) * expectedDistance
+                val ruralDistanceLeft = (0.43 - ruralProportion) * expectedDistance
                 return ruralDistanceLeft * 0.8
             }
 
             DrivingMode.MOTORWAY -> {
                 // Calculate the distance left to drive in motorway mode with an average speed of 115 km/h
-                val motorwayDistanceLeft = (0.23 - motorwayProportion) * expectedDistance
+                val motorwayDistanceLeft = (0.43 - motorwayProportion) * expectedDistance
                 return motorwayDistanceLeft * 60 / 115
             }
         }
