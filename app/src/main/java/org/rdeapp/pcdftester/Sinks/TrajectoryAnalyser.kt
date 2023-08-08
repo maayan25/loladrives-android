@@ -129,15 +129,15 @@ class TrajectoryAnalyser(
      * @return the duration of the driven speed if it is valid and requires warning, null otherwise
      */
     private fun isVeryHighSpeedValid(): Double? {
-        val veryHighSpeedDuration = velocityProfile.getVeryHighSpeed()
+        val veryHighSpeedDuration = velocityProfile.getVeryHighSpeed() // in minutes
         if (veryHighSpeedDuration > 0.03 * 120 * 0.43) {
             // driven in > 145 km/h for more than 3% of the max test time
             isInvalid = true
             return null
-        } else if (veryHighSpeedDuration == (0.025 * 90 * 0.29).toLong()) {
+        } else if (veryHighSpeedDuration == (0.025 * 90 * 0.29)) {
             return 0.025 // driven in > 145 km/h for more 1.5% of the min test time
         }
-        else if (veryHighSpeedDuration == (0.015 * 90 * 0.29).toLong()) {
+        else if (veryHighSpeedDuration == (0.015 * 90 * 0.29)) {
             return 0.015 // driven in > 145 km/h for more 1.5% of the min test time
         }
         return null
@@ -162,7 +162,7 @@ class TrajectoryAnalyser(
      * Consider time and distance left to compute whether high speed can pass
      */
     private fun canHighSpeedPass(): Double? {
-        val highSpeedDuration = velocityProfile.getHighSpeed().toDouble()
+        val highSpeedDuration = velocityProfile.getHighSpeed() // in minutes
         return if (highSpeedDuration > 5) {
             0.0
         } else {
@@ -180,7 +180,7 @@ class TrajectoryAnalyser(
      *         or null if not required.
      */
     private fun isStoppingTimeValid() : Double? {
-        val currentStoppingTime = velocityProfile.getStoppingTime()
+        val currentStoppingTime: Double = velocityProfile.getStoppingTime() // in minutes
         val remainingTime = 120 - totalTime
 
         when {
