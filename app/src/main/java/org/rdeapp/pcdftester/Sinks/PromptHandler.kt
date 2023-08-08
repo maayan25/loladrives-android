@@ -37,9 +37,9 @@ class PromptHandler (
 
     // Variables to store the current prompt
     private var currentText: String = ""
-    private var currentPromptType: PromptTypes? = null
+    private var currentPromptType: PromptType? = null
 
-    private var promptType: PromptTypes? = null
+    private var promptType: PromptType? = null
     private var constraints: Array<Double?> = arrayOf(null)
 
     /**
@@ -59,8 +59,8 @@ class PromptHandler (
     }
 
     /**
-     * Check if the RDE test is invalid.
-     * If so, announce it to the driver, terminate the test, and move to the RDE settings fragment.
+     * Handles invalid RDE tests by updating the TextView for the RDE prompt and creates
+     * an error message It also stops the current RDE test and navigates to the RDE setting.
      */
     private suspend fun handleInvalidRDE() {
         if (trajectoryAnalyser.checkInvalid()) {
@@ -122,17 +122,17 @@ class PromptHandler (
 
         when (trajectoryAnalyser.currentDrivingMode()) {
             DrivingMode.MOTORWAY -> {
-                if (highSpeed != null && highSpeed != 0.0 && promptType != PromptTypes.VERYHIGHSPEEDPERCENTAGE) {
-                    promptType = PromptTypes.HIGHSPEEDPERCENTAGE
+                if (highSpeed != null && highSpeed != 0.0 && promptType != PromptType.VERYHIGHSPEEDPERCENTAGE) {
+                    promptType = PromptType.HIGHSPEEDPERCENTAGE
                 } else if (veryHighSpeed != null) {
-                    promptType = PromptTypes.VERYHIGHSPEEDPERCENTAGE
+                    promptType = PromptType.VERYHIGHSPEEDPERCENTAGE
                 }
             }
             DrivingMode.URBAN -> {
-                if (averageUrbanSpeed != null && averageUrbanSpeed != 0.0 && promptType != PromptTypes.STOPPINGPERCENTAGE) {
-                    promptType = PromptTypes.AVERAGEURBANSPEED
+                if (averageUrbanSpeed != null && averageUrbanSpeed != 0.0 && promptType != PromptType.STOPPINGPERCENTAGE) {
+                    promptType = PromptType.AVERAGEURBANSPEED
                 } else if (stoppingTime != null) {
-                    promptType = PromptTypes.STOPPINGPERCENTAGE
+                    promptType = PromptType.STOPPINGPERCENTAGE
                 }
             }
             else -> {
@@ -140,11 +140,11 @@ class PromptHandler (
                     // Less than 1/3 of the expected distance is travelled, check if any driving style has become sufficient.
                     val sufficientDrivingMode = trajectoryAnalyser.checkSufficient()
                     if (sufficientDrivingMode != null) {
-                        promptType = PromptTypes.SUFFICIENCY
+                        promptType = PromptType.SUFFICIENCY
                     }
                 } else {
                     // More than 1/3 of the expected distance is travelled, check the driving style.
-                    promptType = PromptTypes.DRIVINGSTYLE
+                    promptType = PromptType.DRIVINGSTYLE
                 }
             }
         }
@@ -154,40 +154,41 @@ class PromptHandler (
     }
 
     /**
-     * Generate the prompt according to the prompt type set from the analysis done on the trajectory.
+     * Generate the prompt according to the PromptType set from the analysis done on the trajectory.
+     * Sets the TextViews for the RDE prompt and analysis depending on the PromptType
      */
     private fun generatePrompt() {
         when (promptType) {
-            PromptTypes.SUFFICIENCY -> {
+            PromptType.SUFFICIENCY -> {
                 setSufficientPrompt(sufficientDrivingMode!!)
             }
-            PromptTypes.DRIVINGSTYLE -> {
+            PromptType.DRIVINGSTYLE -> {
                 setDrivingStyleText()
                 setDrivingStylePrompt(drivingStyleText)
                 setDrivingStyleAnalysis(trajectoryAnalyser.computeDuration())
             }
             // Set prompt and analysis in case of constraint in Urban driving mode
-            PromptTypes.AVERAGEURBANSPEED -> {
+            PromptType.AVERAGEURBANSPEED -> {
                 val averageUrbanSpeed = trajectoryAnalyser.getAverageUrbanSpeed()
                 setAverageUrbanSpeedPrompt(averageUrbanSpeed, constraints[3]!!)
             }
-            PromptTypes.STOPPINGPERCENTAGE -> {
+            PromptType.STOPPINGPERCENTAGE -> {
                 setStoppingPercentagePrompt(constraints[2]!!)
             }
             // Set analysis in case of constraint in Motorway driving mode
-            PromptTypes.HIGHSPEEDPERCENTAGE -> {
+            PromptType.HIGHSPEEDPERCENTAGE -> {
                 setDrivingStyleText()
                 setDrivingStylePrompt(drivingStyleText)
                 setHighSpeedPrompt(constraints[0]!!)
             }
-            PromptTypes.VERYHIGHSPEEDPERCENTAGE -> {
+            PromptType.VERYHIGHSPEEDPERCENTAGE -> {
                 setDrivingStyleText()
                 setDrivingStylePrompt(drivingStyleText)
                 setVeryHighSpeedPrompt(constraints[1]!!)
             }
         }
 
-        if (currentPromptType == PromptTypes.DRIVINGSTYLE) {
+        if (currentPromptType == PromptType.DRIVINGSTYLE) {
             // Only speak if the text has changed
             if (currentText != fragment.textViewRDEPrompt.text.toString()) {
                 speak()
@@ -207,11 +208,12 @@ class PromptHandler (
     private fun setHighSpeedPrompt(highSpeedDuration: Double){
         fragment.textViewAnalysis.text =
             "You need to drive at 100km/h or more for at least $highSpeedDuration more minutes."
-        fragment.textViewAnalysis.setTextColor(Color.RED)
+        fragment.textViewAnalysis.setTextColor(Color.BLACK)
     }
 
     /**
-     * Set very high speed percentage analysis text.
+     * Set analysis text for the constraint of driving of 145km/h or more for only 3% of the
+     * motorway driving.
      * @param veryHighSpeedPercentage The very high speed percentage.
      */
     private fun setVeryHighSpeedPrompt(veryHighSpeedPercentage: Double){
@@ -219,34 +221,34 @@ class PromptHandler (
             0.025 -> {
                 fragment.textViewAnalysis.text =
                     "You have driven at 145km/h or more for 2.5% of the motorway driving distance."
-                fragment.textViewAnalysis.setTextColor(Color.RED)
+                fragment.textViewAnalysis.setTextColor(Color.BLACK)
             }
             0.015 -> {
                 fragment.textViewAnalysis.text =
                     "You have driven at 145km/h or more for 1.5% of the motorway driving distance."
-                fragment.textViewAnalysis.setTextColor(Color.RED)
+                fragment.textViewAnalysis.setTextColor(Color.BLACK)
             }
         }
     }
 
     /**
-     * Set the prompt and analysis text for the average urban speed.
+     * Set the prompt and analysis text for the constraint to make the average urban speed
+     * between 15km/h to 40km/h.
      * @param averageUrbanSpeed The average urban speed.
-     * @param changeSpeed The change in speed needed to improve the driving style.
+     * @param changeSpeed The change in speed needed to improve the driving style so
+     *                    how far from nearest bound.
      */
     private fun setAverageUrbanSpeedPrompt(averageUrbanSpeed: Double, changeSpeed: Double){
         when {
             averageUrbanSpeed > 35 && averageUrbanSpeed < 40 -> {
-            fragment.textViewRDEPrompt.text =
-                "Your average urban speed (${averageUrbanSpeed}km/h) is close to being invalid."
-            fragment.textViewAnalysis.text =
-                "You are ${changeSpeed}km/h away from exceeding the upper bound."
+            fragment.textViewRDEPrompt.text = "Your average urban speed (${averageUrbanSpeed}km/h) is close to being invalid."
+            fragment.textViewAnalysis.text = "You are ${changeSpeed}km/h away from exceeding the upper bound."
             fragment.textViewRDEPrompt.setTextColor(Color.RED)
             }
             averageUrbanSpeed > 15 && averageUrbanSpeed < 20 -> {
-            fragment.textViewRDEPrompt.text =
-                "Your average urban speed (${averageUrbanSpeed}km/h) is close to being invalid."
+            fragment.textViewRDEPrompt.text = "Your average urban speed (${averageUrbanSpeed}km/h) is close to being invalid."
             fragment.textViewAnalysis.text = "You are ${changeSpeed}km/h above the lower bound."
+            fragment.textViewRDEPrompt.setTextColor(Color.GREEN)
             }
             changeSpeed < 0 -> {
             fragment.textViewRDEPrompt.text = "Your average urban speed (${averageUrbanSpeed}km/h) is too high."
@@ -256,6 +258,7 @@ class PromptHandler (
             changeSpeed > 0 -> {
             fragment.textViewRDEPrompt.text = "Your average urban speed (${averageUrbanSpeed}km/h) is too low."
             fragment.textViewAnalysis.text = "You are ${changeSpeed}km/h less than the lower bound."
+            fragment.textViewRDEPrompt.setTextColor(Color.GREEN)
             }
         }
     }
@@ -267,20 +270,11 @@ class PromptHandler (
     private fun setStoppingPercentagePrompt(stoppingPercentage: Double) {
         if (stoppingPercentage > 0) {
             fragment.textViewRDEPrompt.text = "You are stopping too little. Try to stop more."
-            fragment.textViewAnalysis.text =
-                "You need to stop for at least ${stoppingPercentage * 100}% more of the urban time."
+            fragment.textViewAnalysis.text = "You need to stop for at least ${stoppingPercentage * 100}% more of the urban time."
             fragment.textViewRDEPrompt.setTextColor(Color.RED)
-        } else if (stoppingPercentage < 0) {
-            fragment.textViewRDEPrompt.text =
-                "You are close to exceeding the stopping percentage. Try to stop less."
-            fragment.textViewAnalysis.text =
-                "You are stopping ${-(stoppingPercentage) * 100}% less than the upper bound."
-            fragment.textViewRDEPrompt.setTextColor(Color.RED)
-        }
-
-        // It should never be 0, but just in case.
-        else {
-            fragment.textViewRDEPrompt.text = "Your stopping percentage is good."
+        } else{
+            fragment.textViewRDEPrompt.text = "You are close to exceeding the stopping percentage. Try to stop less."
+            fragment.textViewAnalysis.text = "You are stopping ${-(stoppingPercentage) * 100}% less than the upper bound."
             fragment.textViewRDEPrompt.setTextColor(Color.GREEN)
         }
     }
@@ -342,16 +336,15 @@ class PromptHandler (
     private fun setDrivingStyleAnalysis(duration: Double) {
         when (desiredDrivingMode) {
             DrivingMode.URBAN -> {
-                fragment.textViewAnalysis.text = "Drive at an average speed of 30 km/h for $duration minutes"
+                fragment.textViewAnalysis.text = "Drive at an average speed of 30 km/h for at most $duration minutes."
             }
             DrivingMode.RURAL -> {
-                fragment.textViewAnalysis.text = "Drive at an average speed of 75 km/h for $duration minutes"
+                fragment.textViewAnalysis.text = "Drive at an average speed of 75 km/h for at most $duration minutes"
             }
             DrivingMode.MOTORWAY -> {
-                fragment.textViewAnalysis.text = "Drive at an average speed of 115 km/h for $duration minutes"
+                fragment.textViewAnalysis.text = "Drive at an average speed of 115 km/h for at most $duration minutes"
             }
         }
-
     }
 
     /**
