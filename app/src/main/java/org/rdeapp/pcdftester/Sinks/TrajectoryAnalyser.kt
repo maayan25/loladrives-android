@@ -209,11 +209,11 @@ class TrajectoryAnalyser(
                 // Stopping percentage is very low and some of the test time has passed
                 return currentStoppingTime / 90 - 0.06
             }
-            currentStoppingTime >= 0.03 * 90 && currentStoppingTime < 0.06 * 90 -> {
+            currentStoppingTime >= 0.03 * 90 && currentStoppingTime < 0.06 * 120 -> {
                 // Stopping percentage is close to being valid but can be increased to pass
                 return currentStoppingTime / 90 - 0.06
             }
-            (currentStoppingTime > 0.3 * 90) && currentStoppingTime < 0.3 * 120 -> {
+            currentStoppingTime > 0.25 * 90 && currentStoppingTime < 0.3 * 120 -> {
                 // Stopping percentage is close to being invalid but can be decreased to pass
                 return currentStoppingTime / 120 - 0.3
             }
@@ -253,13 +253,6 @@ class TrajectoryAnalyser(
                 isInvalid = true
                 return null
             }
-            // TODO change to a more general computation
-            averageUrbanSpeed > 46 && remainingTime < 20 -> {
-                // Need to drive slower to make the average urban speed lower to pass but can't
-                isInvalid = true
-                return null
-            }
-            // TODO add cases for outside the valid range
             averageUrbanSpeed > 35 && averageUrbanSpeed < 40 || averageUrbanSpeed > 40 -> {
                 // average speed is high and close to being invalid or exceeded the limit but can be decreased to pass
                 return 40 - averageUrbanSpeed

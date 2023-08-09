@@ -404,12 +404,72 @@ class TrajectoryAnalyserTest {
         assertTrue(desiredDrivingMode == DrivingMode.RURAL)
     }
 
+    /**
+     * Test that the checkSufficient function return the correct DrivingMode when
+     * passed sufficient level and returns null when nothing has passed or when
+     * all of them have passed already.
+     */
     @Test
     fun checkSufficient() {
+        // None of the driving modes are sufficient yet so should return null.
+        trajectoryAnalyser.updateProgress(
+            0.15 * expectedDistance,
+            0.15 * expectedDistance,
+            0.15 * expectedDistance,
+            validState[3], validState[4], validState[5]
+        )
+        assertTrue(trajectoryAnalyser.checkSufficient() == null)
+        // Urban driving mode is now sufficient so should return that
+        trajectoryAnalyser.updateProgress(
+            0.23 * expectedDistance,
+            0.15 * expectedDistance,
+            0.15 * expectedDistance,
+            validState[3], validState[4], validState[5]
+        )
+        assertTrue(trajectoryAnalyser.checkSufficient() == DrivingMode.URBAN)
+        trajectoryAnalyser.updateProgress(
+            0.29 * expectedDistance,
+            0.15 * expectedDistance,
+            0.18 * expectedDistance,
+            validState[3], validState[4], validState[5]
+        )
+        assertTrue(trajectoryAnalyser.checkSufficient() == DrivingMode.MOTORWAY)
+        trajectoryAnalyser.updateProgress(
+            0.29 * expectedDistance,
+            0.19 * expectedDistance,
+            0.20 * expectedDistance,
+            validState[3], validState[4], validState[5]
+        )
+        assertTrue(trajectoryAnalyser.checkSufficient() == DrivingMode.RURAL)
+        assertTrue(trajectoryAnalyser.checkSufficient() == null)
     }
 
+    /**
+     * Test that the currentDrivingMode function return the correct DrivingMode for the
+     * current speed.
+     */
     @Test
     fun currentDrivingMode() {
+        trajectoryAnalyser.updateProgress(
+            validState[0], validState[1], validState[2],
+            validState[3], 49.0 , validState[5]
+        )
+        assertTrue(trajectoryAnalyser.currentDrivingMode() == DrivingMode.URBAN)
+        trajectoryAnalyser.updateProgress(
+            validState[0], validState[1], validState[2],
+            validState[3], 60.0 , validState[5] // Rural bound (60km/h)
+        )
+        assertTrue(trajectoryAnalyser.currentDrivingMode() == DrivingMode.RURAL)
+        trajectoryAnalyser.updateProgress(
+            validState[0], validState[1], validState[2],
+            validState[3], 80.0 , validState[5]
+        )
+        assertTrue(trajectoryAnalyser.currentDrivingMode() == DrivingMode.RURAL)
+        trajectoryAnalyser.updateProgress(
+            validState[0], validState[1], validState[2],
+            validState[3], 90.0 , validState[5] // Motorway bound (90km/h)
+        )
+        assertTrue(trajectoryAnalyser.currentDrivingMode() == DrivingMode.MOTORWAY)
     }
 
     /**
@@ -464,6 +524,6 @@ class TrajectoryAnalyserTest {
         )
         trajectoryAnalyser.setDesiredDrivingMode() // URBAN is the desired driving mode
         duration = trajectoryAnalyser.computeDuration()
-        assertTrue(duration < 56.44)  // Check that the duration has decrease as urban distance has increased
+        assertTrue(duration < 56.44)  // Check that the duration has decrease as urban distance covered-- has increased
     }
 }
