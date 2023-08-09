@@ -199,21 +199,22 @@ class TrajectoryAnalyser(
                 isInvalid = true
                 return null
             }
-            currentStoppingTime < 0.06 * 120 && remainingTime < (0.06 * 120 - currentStoppingTime) -> {
+            currentStoppingTime < 0.06 * 90 && remainingTime < (0.06 * 90 - currentStoppingTime) -> {
                 // Stopping percentage is invalid and can't be increased to pass
                 isInvalid = true
                 return null
+            }
+            // TODO make sure that this is logically correct
+            totalTime > 30 && currentStoppingTime < 0.02 * totalTime -> {
+                // Stopping percentage is very low and some of the test time has passed
+                return currentStoppingTime / 90 - 0.06
             }
             currentStoppingTime >= 0.03 * 90 && currentStoppingTime < 0.06 * 90 -> {
                 // Stopping percentage is close to being valid but can be increased to pass
                 return currentStoppingTime / 90 - 0.06
             }
-            currentStoppingTime >= 0.25 * 120 && currentStoppingTime < 0.3 * 120 -> {
+            (currentStoppingTime > 0.3 * 90) && currentStoppingTime < 0.3 * 120 -> {
                 // Stopping percentage is close to being invalid but can be decreased to pass
-                return currentStoppingTime / 120 - 0.3
-            }
-            currentStoppingTime > 0.3 * 90 && currentStoppingTime < 0.3 * 120 -> {
-                // Stopping percentage could be invalid but can be decreased to pass
                 return currentStoppingTime / 120 - 0.3
             }
             0.06 * totalTime <= currentStoppingTime && currentStoppingTime <= 0.3 * totalTime -> {
@@ -258,6 +259,7 @@ class TrajectoryAnalyser(
                 isInvalid = true
                 return null
             }
+            // TODO add cases for outside the valid range
             averageUrbanSpeed > 35 && averageUrbanSpeed < 40 || averageUrbanSpeed > 40 -> {
                 // average speed is high and close to being invalid or exceeded the limit but can be decreased to pass
                 return 40 - averageUrbanSpeed

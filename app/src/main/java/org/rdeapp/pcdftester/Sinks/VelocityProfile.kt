@@ -96,14 +96,6 @@ class VelocityProfile {
     }
 
     // Functions for testing purposes
-    fun setVeryHighSpeedTest(speed: Double) {
-        vel145plus = speed
-    }
-
-    fun setHighSpeedTest(speed: Double) {
-        vel100plus = speed
-    }
-
     fun setStopTest(speed: Double) {
         velStop = speed
     }

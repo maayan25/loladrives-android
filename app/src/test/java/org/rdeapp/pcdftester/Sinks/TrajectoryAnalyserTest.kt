@@ -138,7 +138,7 @@ class TrajectoryAnalyserTest {
         )
         trajectoryAnalyser.getConstraints()
 
-        // Wait for 23.59 seconds, the min time for the very high speed constraint to be 1.5% of the min time.
+        // Wait for 23.49 seconds, the min time for the very high speed constraint to be 1.5% of the min time.
         Thread.sleep(23490)
 
         // Still driving in a very high speed
@@ -192,7 +192,7 @@ class TrajectoryAnalyserTest {
         // Wait for 10 seconds, time for the high speed constraint to increase but not pass.
         Thread.sleep(10000)
 
-        // Still driving in a very high speed
+        // Still driving in a high speed
         trajectoryAnalyser.updateProgress(
             validState[0], validState[1], validState[2],
             validState[3], 100.1, validState[5]
@@ -207,7 +207,7 @@ class TrajectoryAnalyserTest {
      */
     @Test
     fun getConstraintsInvalidHighSpeed() {
-        // Driving in a high speed
+        // Driving in a high speed and remaining time is too low.
         trajectoryAnalyser.updateProgress(
             validState[0], validState[1], validState[2],
             118.0, 100.1, validState[5]
@@ -217,7 +217,7 @@ class TrajectoryAnalyserTest {
         // Wait for 10 seconds, time for the high speed constraint to increase but not pass.
         Thread.sleep(10000)
 
-        // Still driving in a very high speed
+        // Still driving in a high speed
         trajectoryAnalyser.updateProgress(
             validState[0], validState[1], validState[2],
             118.0 + velocityProfile.getTimeDifference(), 100.1, validState[5]
@@ -234,14 +234,24 @@ class TrajectoryAnalyserTest {
      */
     @Test
     fun getConstraintsWarningStoppingTimeLow() {
-    }
+        // Stopping
+        trajectoryAnalyser.updateProgress(
+            validState[0], validState[1], validState[2],
+            30.1, 0.0, validState[5]
+        )
+        trajectoryAnalyser.getConstraints()
 
-    /**
-     * Test that the value returned by the getConstraints function is correct
-     * when the Stopping time is too high but can be decreased.
-     */
-    @Test
-    fun getConstraintsWarningStoppingTimeHigh() {
+        // Wait for 5 seconds, a very small amount of stopping time.
+        Thread.sleep(5000)
+
+        // Still stopping
+        trajectoryAnalyser.updateProgress(
+            validState[0], validState[1], validState[2],
+            30.1 + velocityProfile.getTimeDifference(), 0.0, validState[5]
+        )
+
+        // The constraint for high speed should return the remaining stopping time for the lower threshold.
+        assertTrue(trajectoryAnalyser.getConstraints()[2] == velocityProfile.getStoppingTime() / 90 - 0.06)
     }
 
     /**
@@ -250,6 +260,25 @@ class TrajectoryAnalyserTest {
      */
     @Test
     fun getConstraintsInvalidStoppingTime() {
+        // Stopping and remaining time is too low.
+        trajectoryAnalyser.updateProgress(
+            validState[0], validState[1], validState[2],
+            118.0, 0.0, validState[5]
+        )
+        trajectoryAnalyser.getConstraints()
+
+        // Wait for 5 seconds, a very small amount of stopping time.
+        Thread.sleep(5000)
+
+        // Still stopping.
+        trajectoryAnalyser.updateProgress(
+            validState[0], validState[1], validState[2],
+            118.0 + velocityProfile.getTimeDifference(), 0.0, validState[5]
+        )
+
+        // The constraint for stopping time should return null because no remaining time is sufficient.
+        assertTrue(trajectoryAnalyser.getConstraints()[2] == null)
+        assertTrue(trajectoryAnalyser.checkInvalid())
     }
 
     /**
@@ -274,6 +303,25 @@ class TrajectoryAnalyserTest {
      */
     @Test
     fun getConstraintsInvalidAverageUrbanSpeed() {
+        val lowTimeRemaining = 118.0
+
+        // Very low average urban speed and remaining time is too low.
+        trajectoryAnalyser.updateProgress(
+            validState[0], validState[1], validState[2],
+            lowTimeRemaining, 0.0, 2.0
+        )
+        trajectoryAnalyser.getConstraints()
+
+        // Still driving in a very high speed
+        val timePassed = velocityProfile.getTimeDifference()
+        trajectoryAnalyser.updateProgress(
+            validState[0], validState[1], validState[2],
+            lowTimeRemaining + timePassed, 0.0, 2.0
+        )
+
+        // The constraint for average urban speed should return null because no remaining time is sufficient.
+        assertTrue(trajectoryAnalyser.getConstraints()[3] == null)
+        assertTrue(trajectoryAnalyser.checkInvalid())
     }
 
     /**
