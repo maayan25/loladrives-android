@@ -42,7 +42,7 @@ class VelocityProfile {
      * Set the time spent at 145 km/h or more.
      */
     private fun setVeryHighSpeed() {
-        vel145plus = if (currentSpeed > 145.0 && previousSpeed > 145.0) {
+        vel145plus = if (currentSpeed > 145.0 && (previousSpeed == 0.0 || previousSpeed > 145.0)) {
             vel145plus + (getTimeDifference() / 60000.0)
         } else {
             vel145plus
@@ -53,7 +53,7 @@ class VelocityProfile {
      * Set the time spent at 100 km/h or more.
      */
     private fun setHighSpeed() {
-        vel100plus = if (currentSpeed > 100.0 && previousSpeed > 100.0) {
+        vel100plus = if (currentSpeed > 100.0 && (previousSpeed == 0.0 || previousSpeed > 100.0)) {
             vel100plus + (getTimeDifference() / 60000.0)
         } else {
             vel100plus
@@ -93,6 +93,19 @@ class VelocityProfile {
      */
     fun getTimeDifference(): Double {
         return (currentTime - lastUpdated).toDouble()
+    }
+
+    // Functions for testing purposes
+    fun setVeryHighSpeedTest(speed: Double) {
+        vel145plus = speed
+    }
+
+    fun setHighSpeedTest(speed: Double) {
+        vel100plus = speed
+    }
+
+    fun setStopTest(speed: Double) {
+        velStop = speed
     }
 
 }

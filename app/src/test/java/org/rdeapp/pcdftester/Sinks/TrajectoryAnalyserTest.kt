@@ -6,13 +6,17 @@ import org.junit.Before
 import org.junit.Test
 
 class TrajectoryAnalyserTest {
-    private val velocityProfile: VelocityProfile = VelocityProfile()
-    private lateinit var trajectoryAnalyser: TrajectoryAnalyser
+    private val velocityProfile: VelocityProfile = VelocityProfile() // The velocity profile that is used for the test.
+    private lateinit var trajectoryAnalyser: TrajectoryAnalyser // The trajectory analyser that is used for the test.
+
+    // The expected distance that is chosen for the test.
     private var expectedDistance: Double = 83.0
 
+    // Example states for the test.
     private var initialState: List<Double> = listOf<Double>(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-    private var validState: List<Double> = listOf<Double>(0.34 * expectedDistance, 0.33 * expectedDistance, 0.33 * expectedDistance, 60.0, 30.0, 25.0)
-//    private var invalidAverageSpeedState: List<Double> = listOf<Double>(25.0, 22.0, 22.0, 115.0, 30.0, 90.0)
+    private var validState: List<Double> =
+        listOf<Double>(0.34 * expectedDistance, 0.33 * expectedDistance, 0.33 * expectedDistance,
+            60.0, 30.0, 25.0)
 
     @Before
     fun setUp() {
@@ -112,7 +116,6 @@ class TrajectoryAnalyserTest {
         )
 
         val constraints = trajectoryAnalyser.getConstraints()
-        println("constraints: ${constraints[0]}, ${constraints[1]}, ${constraints[2]}, ${constraints[3]}")
         assertEquals(constraints.size, 4)
 
         // The case where no constraints are violated
@@ -128,6 +131,23 @@ class TrajectoryAnalyserTest {
      */
     @Test
     fun getConstraintsWarningVeryHighSpeed() {
+        // Driving in a very high speed
+        trajectoryAnalyser.updateProgress(
+            validState[0], validState[1], validState[2],
+            validState[3], 145.1, validState[5]
+        )
+        trajectoryAnalyser.getConstraints()
+
+        // Wait for 23.59 seconds, the min time for the very high speed constraint to be 1.5% of the min time.
+        Thread.sleep(23490)
+
+        // Still driving in a very high speed
+        trajectoryAnalyser.updateProgress(
+            validState[0], validState[1], validState[2],
+            validState[3], 145.1, validState[5]
+        )
+        // The constraint for very high speed should return a value of 1.5%.
+        assertTrue(trajectoryAnalyser.getConstraints()[1] == 0.015)
     }
 
     /**
@@ -136,6 +156,24 @@ class TrajectoryAnalyserTest {
      */
     @Test
     fun getConstraintsInvalidVeryHighSpeed() {
+        // Driving in a very high speed
+        trajectoryAnalyser.updateProgress(
+            validState[0], validState[1], validState[2],
+            validState[3], 145.1, validState[5]
+        )
+        trajectoryAnalyser.getConstraints()
+
+        // Wait for 92.88 seconds, the min time for the very high speed constraint to become invalid.
+        Thread.sleep(92880)
+
+        // Still driving in a very high speed
+        trajectoryAnalyser.updateProgress(
+            validState[0], validState[1], validState[2],
+            validState[3], 145.1, validState[5]
+        )
+        // The constraint for very high speed should return a value of 1.5%.
+        assertTrue(trajectoryAnalyser.getConstraints()[1] == null)
+        assertTrue(trajectoryAnalyser.checkInvalid())
     }
 
     /**
@@ -144,6 +182,23 @@ class TrajectoryAnalyserTest {
      */
     @Test
     fun getConstraintsWarningHighSpeed() {
+        // Driving in a high speed
+        trajectoryAnalyser.updateProgress(
+            validState[0], validState[1], validState[2],
+            validState[3], 100.1, validState[5]
+        )
+        trajectoryAnalyser.getConstraints()
+
+        // Wait for 10 seconds, time for the high speed constraint to increase but not pass.
+        Thread.sleep(10000)
+
+        // Still driving in a very high speed
+        trajectoryAnalyser.updateProgress(
+            validState[0], validState[1], validState[2],
+            validState[3], 100.1, validState[5]
+        )
+        // The constraint for high speed should return a value smaller than 5.
+        assertTrue(trajectoryAnalyser.getConstraints()[0] == 5 - velocityProfile.getHighSpeed())
     }
 
     /**
@@ -152,6 +207,25 @@ class TrajectoryAnalyserTest {
      */
     @Test
     fun getConstraintsInvalidHighSpeed() {
+        // Driving in a high speed
+        trajectoryAnalyser.updateProgress(
+            validState[0], validState[1], validState[2],
+            118.0, 100.1, validState[5]
+        )
+        trajectoryAnalyser.getConstraints()
+
+        // Wait for 10 seconds, time for the high speed constraint to increase but not pass.
+        Thread.sleep(10000)
+
+        // Still driving in a very high speed
+        trajectoryAnalyser.updateProgress(
+            validState[0], validState[1], validState[2],
+            118.0 + velocityProfile.getTimeDifference(), 100.1, validState[5]
+        )
+
+        // The constraint for high speed should return null because no remaining time is sufficient.
+        assertTrue(trajectoryAnalyser.getConstraints()[0] == null)
+        assertTrue(trajectoryAnalyser.checkInvalid())
     }
 
     /**
@@ -235,15 +309,27 @@ class TrajectoryAnalyserTest {
      */
     @Test
     fun setDesiredDrivingModeMultipleInsufficient() {
+        // Should be set to Urban as it is the current Desired driving mode.
         trajectoryAnalyser.updateProgress(
             0.15 * expectedDistance,
-            validState[1],
+            validState[0],
             0.15 * expectedDistance,
             validState[3], validState[4], validState[5]
         )
         var desiredDrivingMode = trajectoryAnalyser.setDesiredDrivingMode()
         assertTrue(desiredDrivingMode == DrivingMode.URBAN)
 
+        // Should be set to Motorway as Rural is not current Desired Mode and not Current Speed.
+        trajectoryAnalyser.updateProgress(
+            validState[0],
+            0.15 * expectedDistance,
+            0.15 * expectedDistance,
+            validState[3], validState[4], validState[5]
+        )
+        desiredDrivingMode = trajectoryAnalyser.setDesiredDrivingMode()
+        assertTrue(desiredDrivingMode == DrivingMode.MOTORWAY)
+
+        // Should be set to Urban for current speed.
         trajectoryAnalyser.updateProgress(
             0.15 * expectedDistance,
             validState[1],

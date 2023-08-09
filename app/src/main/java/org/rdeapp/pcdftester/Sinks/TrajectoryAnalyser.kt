@@ -142,9 +142,9 @@ class TrajectoryAnalyser(
             // driven in > 145 km/h for more than 3% of the max test time
             isInvalid = true
             return null
-        } else if (veryHighSpeedDuration == (0.025 * 90 * 0.29)) {
+        } else if ((0.026 * 90 * 0.29) >= veryHighSpeedDuration && veryHighSpeedDuration >= (0.025 * 90 * 0.29)) {
             return 0.025 // driven in > 145 km/h for more 1.5% of the min test time
-        } else if (veryHighSpeedDuration == (0.015 * 90 * 0.29)) {
+        } else if ((0.016 * 90 * 0.29) >= veryHighSpeedDuration && veryHighSpeedDuration >= (0.015 * 90 * 0.29)) {
             return 0.015 // driven in > 145 km/h for more 1.5% of the min test time
         }
         return null
@@ -171,8 +171,8 @@ class TrajectoryAnalyser(
      */
     private fun canHighSpeedPass(): Double? {
         val highSpeedDuration = velocityProfile.getHighSpeed() // in minutes
-        return if (totalTime < 10) {
-            0.0 // Don't check for high speed in the first 10 minutes of the test
+        return if (totalTime < 15) {
+            0.0 // Don't check for high speed in the first 15 minutes of the test
         } else if (highSpeedDuration > 5) {
             0.0
         } else {
@@ -237,8 +237,8 @@ class TrajectoryAnalyser(
         val requiredSpeed = urbanDistanceLeft / remainingTime
 
         when {
-            totalTime < 10 -> {
-                // Don't check for average speed in the first 10 minutes of the test
+            totalTime < 15 -> {
+                // Don't check for average speed in the first 15 minutes of the test
                 // because the average speed is not reliable.
                 return null
             }
@@ -252,6 +252,7 @@ class TrajectoryAnalyser(
                 isInvalid = true
                 return null
             }
+            // TODO change to a more general computation
             averageUrbanSpeed > 46 && remainingTime < 20 -> {
                 // Need to drive slower to make the average urban speed lower to pass but can't
                 isInvalid = true
