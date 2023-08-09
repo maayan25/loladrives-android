@@ -194,12 +194,12 @@ class TrajectoryAnalyser(
         val remainingTime = 120 - totalTime
 
         when {
-            currentStoppingTime > 0.3 * 120 && remainingTime < (0.3 * 120 - currentStoppingTime) -> {
+            currentStoppingTime > 0.3 * 120.0 && remainingTime < (0.3 * 120.0 - currentStoppingTime) -> {
                 // Stopping percentage is invalid and can't be decreased to pass
                 isInvalid = true
                 return null
             }
-            currentStoppingTime < 0.06 * 90 && remainingTime < (0.06 * 90 - currentStoppingTime) -> {
+            currentStoppingTime < 0.06 * 90.0 && remainingTime < (0.06 * 90.0 - currentStoppingTime) -> {
                 // Stopping percentage is invalid and can't be increased to pass
                 isInvalid = true
                 return null
@@ -209,9 +209,9 @@ class TrajectoryAnalyser(
                 // Stopping percentage is very low and some of the test time has passed
                 return currentStoppingTime / 90 - 0.06
             }
-            currentStoppingTime >= 0.03 * 90 && currentStoppingTime < 0.06 * 120 -> {
+            currentStoppingTime >= 0.03 * 90.0 && currentStoppingTime < 0.06 * 120.0 -> {
                 // Stopping percentage is close to being valid but can be increased to pass
-                return currentStoppingTime / 90 - 0.06
+                return currentStoppingTime / 90.0 - 0.06
             }
             currentStoppingTime > 0.25 * 90 && currentStoppingTime < 0.3 * 120 -> {
                 // Stopping percentage is close to being invalid but can be decreased to pass
@@ -234,34 +234,35 @@ class TrajectoryAnalyser(
      */
     private fun isAverageSpeedValid(): Double? {
         val urbanDistanceLeft = (0.44 - urbanProportion) * expectedDistance
-        val remainingTime = 120 - totalTime
+        val remainingTime = 120.0 - totalTime
+        // Estimate an average speed with remaining time and distance left in urban driving
         val requiredSpeed = urbanDistanceLeft / remainingTime
 
         when {
-            totalTime < 15 -> {
+            totalTime < 15.0 -> {
                 // Don't check for average speed in the first 15 minutes of the test
                 // because the average speed is not reliable.
                 return null
             }
-            averageUrbanSpeed < 15 && (15 > requiredSpeed || 40 < requiredSpeed) && remainingTime < 20 -> {
+            averageUrbanSpeed < 15.0 && (15.0 > requiredSpeed || 40.0 < requiredSpeed) && remainingTime < 20.0 -> {
                 // Need to drive faster to make the average urban speed higher to pass but can't
                 isInvalid = true
                 return null
             }
-            averageUrbanSpeed > 40 && (urbanDistanceLeft == 0.0 || (15 > requiredSpeed || 40 < requiredSpeed)) && remainingTime < 20 -> {
+            averageUrbanSpeed > 40.0 && (urbanDistanceLeft == 0.0 || (15.0 > requiredSpeed || 40.0 < requiredSpeed)) && remainingTime < 20.0 -> {
                 // Need to drive slower to make the average urban speed lower to pass but can't
                 isInvalid = true
                 return null
             }
-            averageUrbanSpeed > 35 && averageUrbanSpeed < 40 || averageUrbanSpeed > 40 -> {
+            averageUrbanSpeed > 35.0 && averageUrbanSpeed < 40.0 || averageUrbanSpeed > 40.0 -> {
                 // average speed is high and close to being invalid or exceeded the limit but can be decreased to pass
-                return 40 - averageUrbanSpeed
+                return 40.0 - averageUrbanSpeed
             }
-            averageUrbanSpeed > 15 && averageUrbanSpeed < 20 || averageUrbanSpeed < 15 -> {
+            averageUrbanSpeed > 15.0 && averageUrbanSpeed < 20.0 || averageUrbanSpeed < 15.0 -> {
                 // average speed is low and close to being invalid or exceeded the limit but can be increased to pass
-                return 15 - averageUrbanSpeed
+                return 15.0 - averageUrbanSpeed
             }
-            averageUrbanSpeed > 15 && averageUrbanSpeed < 40 -> {
+            averageUrbanSpeed > 15.0 && averageUrbanSpeed < 40.0 -> {
                 // average speed is valid
                 return null
             }

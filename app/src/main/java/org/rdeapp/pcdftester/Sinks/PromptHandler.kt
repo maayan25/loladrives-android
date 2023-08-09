@@ -231,6 +231,7 @@ class PromptHandler (
         }
     }
 
+    // TODO: Round values to 2 decimal places
     /**
      * Set the prompt and analysis text for the constraint to make the average urban speed
      * between 15km/h to 40km/h.
@@ -247,12 +248,12 @@ class PromptHandler (
             }
             averageUrbanSpeed > 15 && averageUrbanSpeed < 20 -> {
             fragment.textViewRDEPrompt.text = "Your average urban speed (${averageUrbanSpeed}km/h) is close to being invalid."
-            fragment.textViewAnalysis.text = "You are ${changeSpeed}km/h above the lower bound."
+            fragment.textViewAnalysis.text = "You are ${-changeSpeed}km/h above the lower bound."
             fragment.textViewRDEPrompt.setTextColor(Color.GREEN)
             }
             changeSpeed < 0 -> {
             fragment.textViewRDEPrompt.text = "Your average urban speed (${averageUrbanSpeed}km/h) is too high."
-            fragment.textViewAnalysis.text = "You are ${changeSpeed}km/h more than the upper bound."
+            fragment.textViewAnalysis.text = "You are ${-changeSpeed}km/h more than the upper bound."
             fragment.textViewRDEPrompt.setTextColor(Color.RED)
             }
             changeSpeed > 0 -> {

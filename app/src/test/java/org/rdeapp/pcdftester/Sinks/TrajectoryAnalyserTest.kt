@@ -287,6 +287,17 @@ class TrajectoryAnalyserTest {
      */
     @Test
     fun getConstraintsWarningAverageUrbanSpeedLow() {
+        trajectoryAnalyser.updateProgress(
+            validState[0], validState[1], validState[2],
+            validState[3], validState[4], 8.0
+        ) // Average urban speed is below 15. The constraint should return a value of 7.0
+        assertTrue(trajectoryAnalyser.getConstraints()[3] == 7.0)
+
+        trajectoryAnalyser.updateProgress(
+            validState[0], validState[1], validState[2],
+            validState[3], validState[4], 18.0
+        ) // Average urban speed is valid but close to 15. The constraint should return a value of -3.0
+        assertTrue(trajectoryAnalyser.getConstraints()[3] == -3.0)
     }
 
     /**
@@ -295,6 +306,17 @@ class TrajectoryAnalyserTest {
      */
     @Test
     fun getConstraintsWarningAverageUrbanSpeedHigh() {
+        trajectoryAnalyser.updateProgress(
+            validState[0], validState[1], validState[2],
+            validState[3], validState[4], 45.0
+        ) // Average urban speed is above 45. The constraint should return a negative value of 5.1
+        assertTrue(trajectoryAnalyser.getConstraints()[3] == -5.0)
+
+        trajectoryAnalyser.updateProgress(
+            validState[0], validState[1], validState[2],
+            validState[3], validState[4], 37.0
+        ) // Average urban speed is valid but close to 40. The constraint should return 3.0
+        assertTrue(trajectoryAnalyser.getConstraints()[3] == 3.0)
     }
 
     /**
