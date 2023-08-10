@@ -17,7 +17,7 @@ class PromptGeneratorTest {
     private var initialState: List<Double> = listOf<Double>(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
     private var sufficientState: List<Double> = // Urban is sufficient and constraints are not violated
         listOf<Double>(0.34 * expectedDistance, 0.1 * expectedDistance, 0.1 * expectedDistance,
-            expectedDistance / 4, 30.0, 25.0)
+            20.0, 30.0, 25.0)
     private var validState: List<Double> =
         listOf<Double>(0.34 * expectedDistance, 0.33 * expectedDistance, 0.20 * expectedDistance,
             60.0, 30.0, 25.0)
@@ -41,11 +41,37 @@ class PromptGeneratorTest {
         assertEquals(promptGenerator.getAnalysisText(), "")
     }
 
+    /**
+     * Test that in a 1st third of the RDE test, the prompt generator
+     * generates a sufficiency prompt.
+     */
     @Test
     fun determinePromptSufficiency() {
+        // A valid state is a state where the constraints are not violated.
         trajectoryAnalyser.updateProgress(sufficientState[0], sufficientState[1], sufficientState[2],
             sufficientState[3], sufficientState[4], sufficientState[5])
         promptGenerator.determinePrompt(20.0, trajectoryAnalyser)
+
+        // The prompt generator should generate a sufficiency prompt.
         assertEquals(promptGenerator.getPromptType(), PromptType.SUFFICIENCY)
+        assertEquals(promptGenerator.getPromptText(), "Your urban driving is sufficient.")
+    }
+
+    /**
+     * Test that after a 1st third of the RDE test, the prompt generator
+     * generates a sufficiency prompt.
+     */
+    @Test
+    fun determinePromptDrivingStyle() {
+        // A valid state is a state where the constraints are not violated and
+        trajectoryAnalyser.updateProgress(validState[0], validState[1], validState[2],
+            validState[3], validState[4], validState[5])
+
+        // Update the prompt generator with the current state.
+        promptGenerator.determinePrompt(60.0, trajectoryAnalyser)
+
+        // The prompt generator should generate a driving style prompt.
+        assertEquals(promptGenerator.getPromptType(), PromptType.DRIVINGSTYLE)
+        assertEquals(promptGenerator.getPromptText(), "Your driving style is good")
     }
 }
