@@ -74,4 +74,83 @@ class PromptGeneratorTest {
         assertEquals(promptGenerator.getPromptType(), PromptType.DRIVINGSTYLE)
         assertEquals(promptGenerator.getPromptText(), "Your driving style is good")
     }
+
+    /**
+     * Test that a warning for average urban speed is generated when the
+     * average urban speed is too high and driving style URBAN is recommended.
+     */
+    @Test
+    fun determinePromptAverageUrbanSpeedTooHigh() {
+        trajectoryAnalyser.updateProgress(
+            0.1 * expectedDistance, validState[1], validState[2],
+            validState[3], validState[4], 45.0)
+
+        // Update the prompt generator with the current state.
+        promptGenerator.determinePrompt(60.0, trajectoryAnalyser)
+
+        // The prompt generator should generate a driving style prompt.
+        assertEquals(promptGenerator.getPromptType(), PromptType.AVERAGEURBANSPEED)
+        assertEquals(promptGenerator.getPromptText(), "Your average urban speed, 45.0km/h, is too high.")
+        assertEquals(promptGenerator.getAnalysisText(), "You are 5.0km/h more than the upper limit.")
+    }
+
+    /**
+     * Test that a warning for average urban speed is generated when the
+     * average urban speed is too low and driving style URBAN is recommended.
+     */
+    @Test
+    fun determinePromptAverageUrbanSpeedTooLow() {
+        trajectoryAnalyser.updateProgress(
+            0.1 * expectedDistance, validState[1], validState[2],
+            validState[3], validState[4], 6.0)
+
+        // Update the prompt generator with the current state.
+        promptGenerator.determinePrompt(60.0, trajectoryAnalyser)
+
+        // The prompt generator should generate a driving style prompt.
+        assertEquals(promptGenerator.getPromptType(), PromptType.AVERAGEURBANSPEED)
+        assertEquals(promptGenerator.getPromptText(), "Your average urban speed, 6.0km/h, is too low.")
+        assertEquals(promptGenerator.getAnalysisText(), "You are 9.0km/h less than the lower limit.")
+    }
+
+    /**
+     * Test that a warning for average urban speed is generated when the
+     * average urban speed is close to being too low and driving style URBAN is recommended.
+     */
+    @Test
+    fun determinePromptAverageUrbanSpeedLow() {
+        trajectoryAnalyser.updateProgress(
+            0.1 * expectedDistance, validState[1], validState[2],
+            validState[3], validState[4], 18.0)
+
+        // Update the prompt generator with the current state.
+        promptGenerator.determinePrompt(60.0, trajectoryAnalyser)
+
+        // The prompt generator should generate a driving style prompt.
+        assertEquals(promptGenerator.getPromptType(), PromptType.AVERAGEURBANSPEED)
+        assertEquals(promptGenerator.getPromptText(), "Your average urban speed, 18.0km/h, is close to being invalid.")
+        assertEquals(promptGenerator.getAnalysisText(), "You are 3.0km/h above the lower limit.")
+    }
+
+    /**
+     * Test that a warning for average urbam speed is generated when the
+     *  average urban speed is close to being too high and driving style URBAN is recommended.
+     */
+    @Test
+    fun determinePromptAverageUrbanSpeedHigh() {
+        trajectoryAnalyser.updateProgress(
+            0.1 * expectedDistance, validState[1], validState[2],
+            validState[3], validState[4], 37.0)
+
+        // Update the prompt generator with the current state.
+        promptGenerator.determinePrompt(60.0, trajectoryAnalyser)
+
+        // The prompt generator should generate a driving style prompt.
+        assertEquals(promptGenerator.getPromptType(), PromptType.AVERAGEURBANSPEED)
+        assertEquals(promptGenerator.getPromptText(), "Your average urban speed, 37.0km/h, is close to being invalid.")
+        assertEquals(promptGenerator.getAnalysisText(), "You are 3.0km/h away from exceeding the upper limit.")
+    }
+
+
+
 }
