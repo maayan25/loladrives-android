@@ -5,6 +5,8 @@ import android.graphics.Color
 class PromptGenerator (
     private var expectedDistance: Double,
 ) {
+    private lateinit var trajectoryAnalyser: TrajectoryAnalyser
+
     // Variables to store information needed to determine the prompt
     private var speedChange: Double = 0.0
     private var drivingStyleText: String = ""
@@ -31,7 +33,7 @@ class PromptGenerator (
      *
      * @param totalDistance The total distance travelled so far.
      */
-    private fun analyseTrajectory(totalDistance: Double, trajectoryAnalyser: TrajectoryAnalyser) {
+    private fun analyseTrajectory(totalDistance: Double) {
         if (totalDistance >= 1/3 * expectedDistance) {
             // set the desired driving mode accrued to the sufficient driving modes so far
             desiredDrivingMode = trajectoryAnalyser.setDesiredDrivingMode()
@@ -41,7 +43,7 @@ class PromptGenerator (
 
         // set the prompt type according to the driving mode and constraints.
         constraints = trajectoryAnalyser.getConstraints()
-        setPromptType(constraints, totalDistance, trajectoryAnalyser)
+        setPromptType(constraints, totalDistance)
     }
 
     /**
@@ -49,7 +51,7 @@ class PromptGenerator (
      * @param constraints The constraints on the driving style.
      * @param totalDistance The total distance travelled so far.
      */
-    private fun setPromptType(constraints: Array<Double?>, totalDistance: Double, trajectoryAnalyser: TrajectoryAnalyser) {
+    private fun setPromptType(constraints: Array<Double?>, totalDistance: Double) {
         val highSpeed = constraints[0]
         val veryHighSpeed = constraints[1]
         val stoppingTime = constraints[2]
@@ -62,7 +64,7 @@ class PromptGenerator (
                 } else if (veryHighSpeed != null) {
                     promptType = PromptType.VERYHIGHSPEEDPERCENTAGE
                 } else {
-                    setModePromptType(totalDistance, trajectoryAnalyser)
+                    setModePromptType(totalDistance)
                 }
             }
             DrivingMode.URBAN -> {
@@ -71,11 +73,11 @@ class PromptGenerator (
                 } else if (stoppingTime != null && stoppingTime != -0.06) { // TODO change this to a better value
                     promptType = PromptType.STOPPINGPERCENTAGE
                 } else {
-                    setModePromptType(totalDistance, trajectoryAnalyser)
+                    setModePromptType(totalDistance)
                 }
             }
             else -> {
-                setModePromptType(totalDistance, trajectoryAnalyser)
+                setModePromptType(totalDistance)
             }
         }
     }
@@ -83,7 +85,7 @@ class PromptGenerator (
     /**
      * Set the prompt type if no constraints are violated.
      */
-    private fun setModePromptType(totalDistance: Double, trajectoryAnalyser: TrajectoryAnalyser) {
+    private fun setModePromptType(totalDistance: Double) {
         if (totalDistance < expectedDistance / 3) {
             // Less than 1/3 of the expected distance is travelled, check if any driving style has become sufficient.
             val sufficientDrivingMode = trajectoryAnalyser.checkSufficient()
@@ -101,8 +103,9 @@ class PromptGenerator (
      * Sets the TextViews for the RDE prompt and analysis depending on the PromptType
      */
     fun determinePrompt(totalDistance: Double, trajectoryAnalyser: TrajectoryAnalyser) {
+        this.trajectoryAnalyser = trajectoryAnalyser
         // Analyse the trajectory driven so far
-        analyseTrajectory(totalDistance, trajectoryAnalyser)
+        analyseTrajectory(totalDistance)
 
         // Set the prompt and analysis according to the prompt type
         when (promptType) {
