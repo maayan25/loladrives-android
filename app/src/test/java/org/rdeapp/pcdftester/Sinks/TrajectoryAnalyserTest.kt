@@ -50,10 +50,6 @@ class TrajectoryAnalyserTest {
         assertNull(constraints[3]) // Average Urban Speed
     }
 
-    @Test
-    fun updateProgress() {
-    }
-
     /**
      * Test if the checkInvalid function returns "false" when the test is valid.
      */
@@ -250,7 +246,7 @@ class TrajectoryAnalyserTest {
             30.1 + velocityProfile.getTimeDifference(), 0.0, validState[5]
         )
 
-        // The constraint for high speed should return the remaining stopping time for the lower threshold.
+        // The constraint for stopping time should return the remaining stopping time for the lower threshold.
         assertTrue(trajectoryAnalyser.getConstraints()[2] == velocityProfile.getStoppingTime() / 90 - 0.06)
     }
 
