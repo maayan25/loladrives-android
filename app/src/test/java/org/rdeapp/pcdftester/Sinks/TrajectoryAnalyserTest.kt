@@ -6,8 +6,8 @@ import org.junit.Before
 import org.junit.Test
 
 class TrajectoryAnalyserTest {
-    private val velocityProfile: VelocityProfile = VelocityProfile() // The velocity profile that is used for the test.
-    private lateinit var trajectoryAnalyser: TrajectoryAnalyser // The trajectory analyser that is used for the test.
+    private val velocityProfile: VelocityProfile = VelocityProfile()
+    private lateinit var trajectoryAnalyser: TrajectoryAnalyser
 
     // The expected distance that is chosen for the test.
     private var expectedDistance: Double = 83.0
@@ -16,7 +16,7 @@ class TrajectoryAnalyserTest {
     private var initialState: List<Double> = listOf<Double>(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
     private var validState: List<Double> =
         listOf<Double>(0.34 * expectedDistance, 0.33 * expectedDistance, 0.33 * expectedDistance,
-            60.0, 30.0, 25.0)
+            25.0, 30.0, 25.0)
 
     @Before
     fun setUp() {

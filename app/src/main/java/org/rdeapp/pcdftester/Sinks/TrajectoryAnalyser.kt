@@ -43,7 +43,7 @@ class TrajectoryAnalyser(
         // check the progress of the driving modes
         // TODO: Check if the outputs from the validator for the distances are in km or m
         urbanProportion = urbanDistance / expectedDistance
-        ruralProportion = ruralDistance  / expectedDistance
+        ruralProportion = ruralDistance / expectedDistance
         motorwayProportion = motorwayDistance / expectedDistance
 
         motorwayComplete = motorwayProportion > 0.43
