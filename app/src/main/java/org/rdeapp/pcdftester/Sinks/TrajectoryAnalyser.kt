@@ -204,18 +204,17 @@ class TrajectoryAnalyser(
                 isInvalid = true
                 return null
             }
-            // TODO make sure that this is logically correct
             totalTime > 30 && currentStoppingTime < 0.02 * totalTime -> {
                 // Stopping percentage is very low and some of the test time has passed
-                return currentStoppingTime / 90 - 0.06
+                return  0.06 - (currentStoppingTime / 90.0)
             }
             currentStoppingTime >= 0.03 * 90.0 && currentStoppingTime < 0.06 * 120.0 -> {
-                // Stopping percentage is close to being valid but can be increased to pass
-                return currentStoppingTime / 90.0 - 0.06
+                // Stopping percentage (Between 2.7 and 7.2 minutes) is close to being valid but can be increased to pass
+                return  0.06 - (currentStoppingTime / 90.0)
             }
             currentStoppingTime > 0.25 * 90 && currentStoppingTime < 0.3 * 120 -> {
-                // Stopping percentage is close to being invalid but can be decreased to pass
-                return currentStoppingTime / 120 - 0.3
+                // Stopping percentage (between 22.5 and 36 minutes) is close to being invalid but can be decreased to pass
+                return (currentStoppingTime / 120) - 0.3
             }
             0.06 * totalTime <= currentStoppingTime && currentStoppingTime <= 0.3 * totalTime -> {
                 return null

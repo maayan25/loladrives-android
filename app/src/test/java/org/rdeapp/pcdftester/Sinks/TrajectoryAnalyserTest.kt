@@ -414,12 +414,12 @@ class TrajectoryAnalyserTest {
     fun setDesiredDrivingModeSingleInsufficient() {
         trajectoryAnalyser.updateProgress(
             validState[0],
-            0.15 * expectedDistance,
-            validState[2],
+            validState[1],
+            0.10 * expectedDistance,
             validState[3], validState[4], validState[5]
         )
         val desiredDrivingMode = trajectoryAnalyser.setDesiredDrivingMode()
-        assertTrue(desiredDrivingMode == DrivingMode.RURAL)
+        assertEquals(desiredDrivingMode, DrivingMode.MOTORWAY)
     }
 
     /**
