@@ -138,7 +138,6 @@ class TrajectoryAnalyser(
      */
     private fun isVeryHighSpeedValid(): Double? {
         val veryHighSpeedDuration = velocityProfile.getVeryHighSpeed() // in minutes
-        println(veryHighSpeedDuration)
         if (veryHighSpeedDuration > 0.03 * 120 * 0.43) {
             // driven in > 145 km/h for more than 3% of the max test time
             isInvalid = true

@@ -124,7 +124,7 @@ class PromptGeneratorTest {
             validState[0],
             validState[1],
             0.05 * expectedDistance,
-            validState[3], validState[4], validState[5]
+            validState[3], 70.0, validState[5]
         ) // Motorway distance isn't sufficient and Rural and Urban are sufficient
 
         promptGenerator.determinePrompt(61.0, trajectoryAnalyser)
@@ -292,16 +292,17 @@ class PromptGeneratorTest {
 
     /**
      * Test that a warning for the very high speed is generated when 1.5% of test has
-     * been driven at 145km/h or more.
+     * been driven at 145km/h or more and check that the Prompt Type changes.
      */
     @Test
-    fun determineVeryHighSpeed(){
+    fun determinePromptAndSetPromptMotorway(){
         trajectoryAnalyser.updateProgress(
             validState[0], validState[1], 0.1 * expectedDistance,
             validState[3], 145.1, validState[5]
         )
         // Generates a high speed prompt first
         promptGenerator.determinePrompt(60.0, trajectoryAnalyser)
+        assertEquals(promptGenerator.getPromptType(), PromptType.HIGHSPEEDPERCENTAGE)
 
         Thread.sleep(23490) // Wait for 23.5 seconds
         trajectoryAnalyser.updateProgress(
@@ -338,4 +339,29 @@ class PromptGeneratorTest {
         assertEquals(promptGenerator.getPromptText(), "Aim for a higher driving speed, if it is safe to do so, for more motorway driving")
         assertEquals(promptGenerator.getAnalysisText(), "You have driven at 145km/h or more for 2.5% of the motorway driving distance.")
     }
+
+    /**
+     * Test that when both the stopping percentage and average urban speed constraints
+     * require prompts then correct prompt is set.
+     */
+    @Test
+    fun setPromptTypeUrban(){
+        trajectoryAnalyser.updateProgress(
+            0.13 * expectedDistance, validState[1], validState[2],
+            90.0, 0.0, 18.0
+        ) // Stopping time is too low and average urban speed is close to being low
+        promptGenerator.determinePrompt(60.0, trajectoryAnalyser)
+
+        assertEquals(promptGenerator.getPromptType(), PromptType.AVERAGEURBANSPEED)
+
+        trajectoryAnalyser.updateProgress(
+            0.13 * expectedDistance, validState[1], validState[2],
+            90.0 + velocityProfile.getTimeDifference(), 0.0, 18.0
+        ) // Same state
+        promptGenerator.determinePrompt(60.0, trajectoryAnalyser)
+
+        assertEquals(promptGenerator.getPromptType(), PromptType.STOPPINGPERCENTAGE)
+    }
+
+
 }
