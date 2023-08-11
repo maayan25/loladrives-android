@@ -192,7 +192,7 @@ class PromptGeneratorTest {
     }
 
     /**
-     * Test that a warning for average urbam speed is generated when the
+     * Test that a warning for average urban speed is generated when the
      *  average urban speed is close to being too high and driving style URBAN is recommended.
      */
     @Test
@@ -211,7 +211,8 @@ class PromptGeneratorTest {
     }
 
     /**
-     *
+     * Test that a warning for stopping percentage is generated when stopping time is
+     * very low and some time has passed and driving style URBAN is recommended
      */
     @Test
     fun determinePromptVeryLowStoppingTime(){
@@ -223,11 +224,12 @@ class PromptGeneratorTest {
         // The prompt generator should generate a driving style prompt.
         assertEquals(promptGenerator.getPromptType(), PromptType.STOPPINGPERCENTAGE)
         assertEquals(promptGenerator.getPromptText(), "You are stopping too little. Try to stop more.")
-        assertEquals(promptGenerator.getAnalysisText(), "You [need to stop for at least 6.0% more of the urban time.")
+        assertEquals(promptGenerator.getAnalysisText(), "You need to stop for at least 6.0% more of the urban time.")
     }
 
     /**
-     *
+     * Test that a warning for stopping percentage is generated when the stopping percentage is
+     * below the lower boundary
      */
     @Test
     fun determinePromptLowStoppingTime(){
@@ -248,4 +250,92 @@ class PromptGeneratorTest {
         assertEquals(promptGenerator.getAnalysisText(), "You need to stop for at least 2.0% more of the urban time.")
     }
 
+    /**
+     * Test that a warning for stopping percentage is generated when the stopping time is close to
+     * the upper bound.
+     */
+    @Test
+    fun determinePromptHighStoppingTime(){
+        trajectoryAnalyser.updateProgress(
+            0.13 * expectedDistance, validState[1], validState[2],
+            20.0, 0.0, validState[5]
+        )
+        promptGenerator.determinePrompt(60.0, trajectoryAnalyser)
+        Thread.sleep(1520000)  // Wait for 22.5 minutes
+        trajectoryAnalyser.updateProgress(
+            0.13 * expectedDistance, validState[1], validState[2],
+            20.0 + velocityProfile.getTimeDifference(), 0.0, validState[5]
+        )
+        promptGenerator.determinePrompt(60.0, trajectoryAnalyser)
+        // The prompt generator should generate a driving style prompt.
+        assertEquals(promptGenerator.getPromptType(), PromptType.STOPPINGPERCENTAGE)
+        assertEquals(promptGenerator.getPromptText(), "You are close to exceeding the stopping percentage. Try to stop less.")
+        assertEquals(promptGenerator.getAnalysisText(), "You are stopping 9.0% less than the upper bound.")
+    }
+
+
+    /**
+     * Test that a prompt for high speed is generated advising the user to drive a
+     * certain duration to reach at least 5 minutes
+     */
+    @Test
+    fun determinePromptHighSpeed(){
+        trajectoryAnalyser.updateProgress(
+            validState[0], validState[1], 0.11 * expectedDistance,
+            validState[3], 145.1, validState[5]
+        )
+        promptGenerator.determinePrompt(60.0, trajectoryAnalyser)
+        assertEquals(promptGenerator.getPromptType(), PromptType.HIGHSPEEDPERCENTAGE)
+        assertEquals(promptGenerator.getPromptText(), "Aim for a higher driving speed, if it is safe to do so, for more motorway driving")
+        assertEquals(promptGenerator.getAnalysisText(), "You need to drive at 100km/h or more for at least 5.0 more minutes.")
+    }
+
+    /**
+     * Test that a warning for the very high speed is generated when 1.5% of test has
+     * been driven at 145km/h or more.
+     */
+    @Test
+    fun determineVeryHighSpeed(){
+        trajectoryAnalyser.updateProgress(
+            validState[0], validState[1], 0.1 * expectedDistance,
+            validState[3], 145.1, validState[5]
+        )
+        // Generates a high speed prompt first
+        promptGenerator.determinePrompt(60.0, trajectoryAnalyser)
+
+        Thread.sleep(23490) // Wait for 23.5 seconds
+        trajectoryAnalyser.updateProgress(
+            validState[0], validState[1], 0.1 * expectedDistance,
+            20 + velocityProfile.getTimeDifference(), 145.1, validState[5]
+        )
+        promptGenerator.determinePrompt(60.0, trajectoryAnalyser)
+        assertEquals(promptGenerator.getPromptType(), PromptType.VERYHIGHSPEEDPERCENTAGE)
+        assertEquals(promptGenerator.getPromptText(), "Aim for a higher driving speed, if it is safe to do so, for more motorway driving")
+        assertEquals(promptGenerator.getAnalysisText(), "You have driven at 145km/h or more for 1.5% of the motorway driving distance.")
+    }
+
+    /**
+     * Test that a warning for the very high speed is generated when 2.5% of test has
+     * been driven at 145km/h or more.
+     */
+    @Test
+    fun determinePromptVeryHighSpeed(){
+        trajectoryAnalyser.updateProgress(
+            validState[0], validState[1], 0.1 * expectedDistance,
+            validState[3], 145.1, validState[5]
+        )
+        promptGenerator.determinePrompt(60.0, trajectoryAnalyser)
+
+        Thread.sleep(40000) // Wait for 40 seconds
+
+        trajectoryAnalyser.updateProgress(
+            validState[0], validState[1], 0.1 * expectedDistance,
+            20 + velocityProfile.getTimeDifference(), 145.1, validState[5]
+        )
+        promptGenerator.determinePrompt(60.0, trajectoryAnalyser)
+
+        assertEquals(promptGenerator.getPromptType(), PromptType.VERYHIGHSPEEDPERCENTAGE)
+        assertEquals(promptGenerator.getPromptText(), "Aim for a higher driving speed, if it is safe to do so, for more motorway driving")
+        assertEquals(promptGenerator.getAnalysisText(), "You have driven at 145km/h or more for 2.5% of the motorway driving distance.")
+    }
 }

@@ -59,7 +59,7 @@ class PromptGenerator (
 
         when (trajectoryAnalyser.currentDrivingMode()) {
             DrivingMode.MOTORWAY -> {
-                if (highSpeed != null && highSpeed != 0.0 && promptType != PromptType.VERYHIGHSPEEDPERCENTAGE) {
+                if (highSpeed != null && highSpeed != 0.0 && promptType != PromptType.HIGHSPEEDPERCENTAGE) {
                     promptType = PromptType.HIGHSPEEDPERCENTAGE
                 } else if (veryHighSpeed != null) {
                     promptType = PromptType.VERYHIGHSPEEDPERCENTAGE
@@ -68,7 +68,7 @@ class PromptGenerator (
                 }
             }
             DrivingMode.URBAN -> {
-                if (averageUrbanSpeed != null && averageUrbanSpeed != 0.0 && promptType != PromptType.STOPPINGPERCENTAGE) {
+                if (averageUrbanSpeed != null && averageUrbanSpeed != 0.0 && promptType != PromptType.AVERAGEURBANSPEED) {
                     promptType = PromptType.AVERAGEURBANSPEED
                 } else if (stoppingTime != null && stoppingTime != -0.06) { // TODO change this to a better value
                     promptType = PromptType.STOPPINGPERCENTAGE
@@ -149,10 +149,10 @@ class PromptGenerator (
      */
     private fun setHighSpeedPrompt(highSpeedDuration: Double){
         // Round the duration to 2 decimal
-        val highSpeedDuration = String.format("%.1f", highSpeedDuration).toDouble()
+        val highSpeedDurationRounded = String.format("%.1f", highSpeedDuration).toDouble()
 
         analysisText =
-            "You need to drive at 100km/h or more for at least $highSpeedDuration more minutes."
+            "You need to drive at 100km/h or more for at least $highSpeedDurationRounded more minutes."
         analysisColour = Color.BLACK
     }
 
@@ -186,28 +186,28 @@ class PromptGenerator (
      */
     private fun setAverageUrbanSpeedPrompt(averageUrbanSpeed: Double, changeSpeed: Double){
         // Round values to 2 decimal places
-        val averageUrbanSpeed = String.format("%.2f", averageUrbanSpeed).toDouble()
-        val changeSpeed = String.format("%.2f", changeSpeed).toDouble()
+        val averageUrbanSpeedRounded = String.format("%.2f", averageUrbanSpeed).toDouble()
+        val changeSpeedRounded = String.format("%.2f", changeSpeed).toDouble()
 
         when {
-            averageUrbanSpeed > 35 && averageUrbanSpeed < 40 -> {
-                promptText = "Your average urban speed, ${averageUrbanSpeed}km/h, is close to being invalid."
-                analysisText = "You are ${changeSpeed}km/h away from exceeding the upper limit."
+            averageUrbanSpeedRounded > 35 && averageUrbanSpeedRounded < 40 -> {
+                promptText = "Your average urban speed, ${averageUrbanSpeedRounded}km/h, is close to being invalid."
+                analysisText = "You are ${changeSpeedRounded}km/h away from exceeding the upper limit."
                 promptColour = Color.RED
             }
-            averageUrbanSpeed > 15 && averageUrbanSpeed < 20 -> {
-                promptText = "Your average urban speed, ${averageUrbanSpeed}km/h, is close to being invalid."
-                analysisText = "You are ${-changeSpeed}km/h above the lower limit."
+            averageUrbanSpeedRounded > 15 && averageUrbanSpeedRounded < 20 -> {
+                promptText = "Your average urban speed, ${averageUrbanSpeedRounded}km/h, is close to being invalid."
+                analysisText = "You are ${-changeSpeedRounded}km/h above the lower limit."
                 promptColour = Color.GREEN
             }
-            changeSpeed < 0 -> {
-                promptText = "Your average urban speed, ${averageUrbanSpeed}km/h, is too high."
-                analysisText = "You are ${-changeSpeed}km/h more than the upper limit."
+            changeSpeedRounded < 0 -> {
+                promptText = "Your average urban speed, ${averageUrbanSpeedRounded}km/h, is too high."
+                analysisText = "You are ${-changeSpeedRounded}km/h more than the upper limit."
                 promptColour = Color.RED
             }
-            changeSpeed > 0 -> {
-                promptText = "Your average urban speed, ${averageUrbanSpeed}km/h, is too low."
-                analysisText = "You are ${changeSpeed}km/h less than the lower limit."
+            changeSpeedRounded > 0 -> {
+                promptText = "Your average urban speed, ${averageUrbanSpeedRounded}km/h, is too low."
+                analysisText = "You are ${changeSpeedRounded}km/h less than the lower limit."
                 promptColour = Color.GREEN
             }
         }
@@ -219,15 +219,15 @@ class PromptGenerator (
      */
     private fun setStoppingPercentagePrompt(stoppingPercentage: Double) {
         // Round values to 2 decimal places
-        val stoppingPercentage = String.format("%.2f", stoppingPercentage).toDouble()
+        val stoppingPercentageRounded = String.format("%.2f", stoppingPercentage).toDouble()
 
-        if (stoppingPercentage > 0) {
+        if (stoppingPercentageRounded > 0) {
             promptText = "You are stopping too little. Try to stop more."
-            analysisText = "You need to stop for at least ${stoppingPercentage * 100}% more of the urban time."
+            analysisText = "You need to stop for at least ${stoppingPercentageRounded * 100}% more of the urban time."
             promptColour = Color.RED
         } else{
             promptText = "You are close to exceeding the stopping percentage. Try to stop less."
-            analysisText = "You are stopping ${-(stoppingPercentage) * 100}% less than the upper bound."
+            analysisText = "You are stopping ${-(stoppingPercentageRounded) * 100}% less than the upper bound."
             promptColour = Color.GREEN
         }
     }
@@ -288,17 +288,17 @@ class PromptGenerator (
      */
     private fun setDrivingStyleAnalysis(duration: Double) {
         // Round value to 2 decimal places
-        val duration = String.format("%.2f", duration).toDouble()
+        val durationRounded = String.format("%.2f", duration).toDouble()
 
         analysisText = when (desiredDrivingMode) {
             DrivingMode.URBAN -> {
-                "Drive at an average speed of 30 km/h for at most $duration minutes."
+                "Drive at an average speed of 30 km/h for at most $durationRounded minutes."
             }
             DrivingMode.RURAL -> {
-                "Drive at an average speed of 75 km/h for at most $duration minutes"
+                "Drive at an average speed of 75 km/h for at most $durationRounded minutes"
             }
             DrivingMode.MOTORWAY -> {
-                "Drive at an average speed of 115 km/h for at most $duration minutes"
+                "Drive at an average speed of 115 km/h for at most $durationRounded minutes"
             }
         }
     }
