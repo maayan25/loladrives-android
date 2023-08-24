@@ -36,8 +36,32 @@ class PromptGeneratorTest {
         trajectoryAnalyser.updateProgress(initialState[0], initialState[1], initialState[2],
             initialState[3], initialState[4], initialState[5])
         promptGenerator.determinePrompt(0.0, trajectoryAnalyser)
-        assertEquals(promptGenerator.getPromptType(), null)
-        assertEquals(promptGenerator.getPromptText(), "")
+        assertEquals(promptGenerator.getPromptType(), PromptType.NONE)
+        assertEquals(promptGenerator.getPromptText(), "Analysis will be available after 1/3 of the test is completed.")
+        assertEquals(promptGenerator.getAnalysisText(), "")
+    }
+
+    /**
+     * Test that in a 1st third of the RDE test, the prompt generator
+     * generates a prompt saying the analysis will be available after 1/3 of the test is completed.
+     */
+    @Test
+    fun determinePromptNone() {
+        // A valid state is a state where the constraints are not violated.
+        trajectoryAnalyser.updateProgress(initialState[0], initialState[1], initialState[2],
+            initialState[3], initialState[4], initialState[5])
+        promptGenerator.determinePrompt(0.0, trajectoryAnalyser)
+
+        Thread.sleep(1000) // Wait for 1 second
+
+        // Update current state to be in the 1st third of the test still.
+        trajectoryAnalyser.updateProgress(0.01, initialState[1], initialState[2],
+            initialState[3], 20.0, initialState[5])
+        promptGenerator.determinePrompt(0.0, trajectoryAnalyser)
+
+        // The prompt generator should generate a NONE prompt.
+        assertEquals(promptGenerator.getPromptType(), PromptType.NONE)
+        assertEquals(promptGenerator.getPromptText(), "Analysis will be available after 1/3 of the test is completed.")
         assertEquals(promptGenerator.getAnalysisText(), "")
     }
 
