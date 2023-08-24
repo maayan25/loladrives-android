@@ -24,7 +24,7 @@ class PromptGeneratorTest {
 
     @Before
     fun setUp() {
-        trajectoryAnalyser = TrajectoryAnalyser(expectedDistance, velocityProfile)
+        trajectoryAnalyser = TrajectoryAnalyser(expectedDistance , velocityProfile)
         promptGenerator = PromptGenerator(expectedDistance)
     }
 

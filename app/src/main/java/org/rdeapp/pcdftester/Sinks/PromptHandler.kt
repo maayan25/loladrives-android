@@ -88,7 +88,7 @@ class PromptHandler (
         // If the prompt type is DRIVINGSTYLE, then only speak if the text has changed
         if (newPromptType == PromptType.DRIVINGSTYLE) {
             // Only speak if the text has changed
-            if (currentPromptText != fragment.textViewRDEPrompt.text.toString()) {
+            if (currentPromptText != fragment.textViewRDEPrompt.text.toString() && currentPromptType != newPromptType){
                 speak()
             }
         }

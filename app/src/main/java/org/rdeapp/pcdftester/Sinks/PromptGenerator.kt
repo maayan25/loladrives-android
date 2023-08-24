@@ -41,9 +41,12 @@ class PromptGenerator (
             speedChange = trajectoryAnalyser.computeSpeedChange()
         }
 
-        // set the prompt type according to the driving mode and constraints.
         constraints = trajectoryAnalyser.getConstraints()
-        setPromptType(constraints, totalDistance)
+
+        // set the prompt type according to the driving mode and constraints.
+        if (totalDistance >= 2/3 * expectedDistance) {
+            setPromptType(constraints, totalDistance)
+        }
     }
 
     /**
@@ -68,7 +71,7 @@ class PromptGenerator (
                 }
             }
             DrivingMode.URBAN -> {
-                if (averageUrbanSpeed != null && averageUrbanSpeed != 0.0 && promptType != PromptType.AVERAGEURBANSPEED) {
+                if (averageUrbanSpeed != null && averageUrbanSpeed != 0.0 && promptType != PromptType.STOPPINGPERCENTAGE) {
                     promptType = PromptType.AVERAGEURBANSPEED
                 } else if (stoppingTime != null && stoppingTime != -0.06) { // TODO change this to a better value
                     promptType = PromptType.STOPPINGPERCENTAGE
@@ -176,7 +179,6 @@ class PromptGenerator (
         }
     }
 
-    // TODO: Round values to 2 decimal places
     /**
      * Set the prompt and analysis text for the constraint to make the average urban speed
      * between 15km/h to 40km/h.
