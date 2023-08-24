@@ -39,12 +39,8 @@ class PromptGenerator (
             desiredDrivingMode = trajectoryAnalyser.setDesiredDrivingMode()
             // get the speed change needed to improve the driving style
             speedChange = trajectoryAnalyser.computeSpeedChange()
-        }
-
-        constraints = trajectoryAnalyser.getConstraints()
-
-        // set the prompt type according to the driving mode and constraints.
-        if (totalDistance >= 2/3 * expectedDistance) {
+            // get the constraints on the driving style
+            constraints = trajectoryAnalyser.getConstraints()
             setPromptType(constraints, totalDistance)
         }
     }
@@ -92,8 +88,10 @@ class PromptGenerator (
         if (totalDistance < expectedDistance / 3) {
             // Less than 1/3 of the expected distance is travelled, check if any driving style has become sufficient.
             val sufficientDrivingMode = trajectoryAnalyser.checkSufficient()
-            if (sufficientDrivingMode != null) {
-                promptType = PromptType.SUFFICIENCY
+            promptType = if (sufficientDrivingMode != null) {
+                PromptType.SUFFICIENCY
+            } else {
+                PromptType.NONE
             }
         } else {
             // More than 1/3 of the expected distance is travelled, check the driving style.
@@ -112,12 +110,11 @@ class PromptGenerator (
 
         // Set the prompt and analysis according to the prompt type
         when (promptType) {
+            PromptType.NONE -> {
+                setNonePrompt()
+            }
             PromptType.SUFFICIENCY -> {
-                if (sufficientDrivingMode != null) {
-                    setSufficientPrompt(sufficientDrivingMode!!)
-                } else {
-                    setSufficientPrompt(DrivingMode.URBAN) // TODO change this to a better value
-                }
+                setSufficientPrompt(sufficientDrivingMode!!)
             }
             PromptType.DRIVINGSTYLE -> {
                 setDrivingStyleText()
@@ -144,6 +141,17 @@ class PromptGenerator (
                 setVeryHighSpeedPrompt(constraints[1]!!)
             }
         }
+    }
+
+    /**
+     * Set the prompt text and analysis text for the case where no prompt is needed yet.
+     * (Less than 1/3 of the expected distance is travelled)
+     */
+    private fun setNonePrompt() {
+        promptText = "Analysis will be available after 1/3 of the test is completed."
+        analysisText = ""
+        promptColour = Color.BLACK
+        analysisColour = Color.BLACK
     }
 
     /**

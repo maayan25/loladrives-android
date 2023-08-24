@@ -19,6 +19,7 @@ enum class DrivingMode {
  * @property VERYHIGHSPEEDPERCENTAGE Prompt for very high speed percentage(Driving at 145km/h for a max of 3%).
  */
 enum class PromptType {
+    NONE,
     SUFFICIENCY,
     DRIVINGSTYLE,
     AVERAGEURBANSPEED,
