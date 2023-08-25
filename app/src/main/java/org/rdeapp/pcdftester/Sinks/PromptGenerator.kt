@@ -85,17 +85,17 @@ class PromptGenerator (
      * Set the prompt type if no constraints are violated.
      */
     private fun setModePromptType(totalDistance: Double) {
-        if (totalDistance < expectedDistance / 3) {
+        promptType = if (totalDistance < expectedDistance / 3) {
             // Less than 1/3 of the expected distance is travelled, check if any driving style has become sufficient.
-            val sufficientDrivingMode = trajectoryAnalyser.checkSufficient()
-            promptType = if (sufficientDrivingMode != null) {
-                PromptType.SUFFICIENCY
+            sufficientDrivingMode = trajectoryAnalyser.checkSufficient()
+            if (sufficientDrivingMode != null) {
+                PromptType.SUFFICIENCY // Some driving style has just become sufficient
             } else {
-                PromptType.NONE
+                PromptType.NONE // No prompt needed right now
             }
         } else {
             // More than 1/3 of the expected distance is travelled, check the driving style.
-            promptType = PromptType.DRIVINGSTYLE
+            PromptType.DRIVINGSTYLE
         }
     }
 
@@ -106,7 +106,7 @@ class PromptGenerator (
     fun determinePrompt(totalDistance: Double, trajectoryAnalyser: TrajectoryAnalyser) {
         this.trajectoryAnalyser = trajectoryAnalyser
         // Analyse the trajectory driven so far
-        analyseTrajectory(totalDistance)
+        analyseTrajectory(totalDistance / 1000) // convert to kilometres
 
         // Set the prompt and analysis according to the prompt type
         when (promptType) {

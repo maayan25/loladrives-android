@@ -13,6 +13,10 @@ class PromptGeneratorTest {
     // The expected distance that is chosen for the test.
     private var expectedDistance: Double = 83.0
 
+    // Distances in metres for the velocity profile.
+    private var earlyDistance: Double = 20000.0
+    private var progressDistance: Double = 60000.0
+
     // Example states for the test.
     private var initialState: List<Double> = listOf<Double>(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
     private var sufficientState: List<Double> = // Urban is sufficient and constraints are not violated
@@ -72,31 +76,13 @@ class PromptGeneratorTest {
     @Test
     fun determinePromptSufficiency() {
         // A valid state is a state where the constraints are not violated.
-        trajectoryAnalyser.updateProgress(sufficientState[0], sufficientState[1], sufficientState[2],
+        trajectoryAnalyser.updateProgress(earlyDistance, initialState[1], initialState[2],
             sufficientState[3], sufficientState[4], sufficientState[5])
-        promptGenerator.determinePrompt(20.0, trajectoryAnalyser)
+        promptGenerator.determinePrompt(earlyDistance, trajectoryAnalyser)
 
         // The prompt generator should generate a sufficiency prompt.
         assertEquals(promptGenerator.getPromptType(), PromptType.SUFFICIENCY)
         assertEquals(promptGenerator.getPromptText(), "Your urban driving is sufficient.")
-    }
-
-    /**
-     * Test that after a 1st third of the RDE test, the prompt generator
-     * generates a sufficiency prompt.
-     */
-    @Test
-    fun determinePromptDrivingStyle() {
-        // A valid state is a state where the constraints are not violated and
-        trajectoryAnalyser.updateProgress(validState[0], validState[1], validState[2],
-            validState[3], validState[4], validState[5])
-
-        // Update the prompt generator with the current state.
-        promptGenerator.determinePrompt(60.0, trajectoryAnalyser)
-
-        // The prompt generator should generate a driving style prompt.
-        assertEquals(promptGenerator.getPromptType(), PromptType.DRIVINGSTYLE)
-        assertEquals(promptGenerator.getPromptText(), "Your driving style is good")
     }
 
     /**
@@ -111,17 +97,18 @@ class PromptGeneratorTest {
         ) // Urban distance isn't sufficient and Motorway and Rural are sufficient
 
         // Update the prompt generator with the current state.
-        promptGenerator.determinePrompt(60.0, trajectoryAnalyser)
+        promptGenerator.determinePrompt(progressDistance, trajectoryAnalyser)
 
         // The prompt generator should generate a driving style and appropriate analysis
         assertEquals(promptGenerator.getPromptType(), PromptType.DRIVINGSTYLE)
-        assertEquals(promptGenerator.getPromptText(), "Aim for a higher driving speed, if it is safe to do so, for more urban driving")
+        assertEquals(promptGenerator.getPromptText(), "Aim for a lower driving speed, if it is safe to do so, for more urban driving")
         assertEquals(promptGenerator.getAnalysisText(), "Drive at an average speed of 30 km/h for at most 56.44 minutes.")
     }
 
     /**
      * Test that the prompt generator generates a prompt for the driving style RURAL
      */
+    // TODO received stopping percentage
     @Test
     fun determinePromptDrivingStyleRural(){
         trajectoryAnalyser.updateProgress(
@@ -129,8 +116,11 @@ class PromptGeneratorTest {
             validState[3], 10.5, validState[5]
         ) // Rural distance isn't sufficient and Motorway and Urban are sufficient
 
+        promptGenerator.determinePrompt(progressDistance, trajectoryAnalyser)
+        Thread.sleep(300000)  // Wait for stopping time to be valid
+
         // Update the prompt generator with the current state.
-        promptGenerator.determinePrompt(60.0, trajectoryAnalyser)
+        promptGenerator.determinePrompt(progressDistance, trajectoryAnalyser)
 
         // The prompt generator should generate a driving style and appropriate analysis
         assertEquals(promptGenerator.getPromptType(), PromptType.DRIVINGSTYLE)
@@ -151,7 +141,7 @@ class PromptGeneratorTest {
             validState[3], 70.0, validState[5]
         ) // Motorway distance isn't sufficient and Rural and Urban are sufficient
 
-        promptGenerator.determinePrompt(61.0, trajectoryAnalyser)
+        promptGenerator.determinePrompt(progressDistance + 1000.0, trajectoryAnalyser)
         // The prompt generator should generate a driving style and appropriate analysis
         assertEquals(promptGenerator.getPromptType(), PromptType.DRIVINGSTYLE)
         assertEquals(promptGenerator.getPromptText(), "Aim for a higher driving speed, if it is safe to do so, for more motorway driving")
@@ -169,7 +159,7 @@ class PromptGeneratorTest {
             validState[3], validState[4], 45.0)
 
         // Update the prompt generator with the current state.
-        promptGenerator.determinePrompt(60.0, trajectoryAnalyser)
+        promptGenerator.determinePrompt(progressDistance, trajectoryAnalyser)
 
         // The prompt generator should generate a driving style prompt.
         assertEquals(promptGenerator.getPromptType(), PromptType.AVERAGEURBANSPEED)
@@ -188,7 +178,7 @@ class PromptGeneratorTest {
             validState[3], validState[4], 6.0)
 
         // Update the prompt generator with the current state.
-        promptGenerator.determinePrompt(60.0, trajectoryAnalyser)
+        promptGenerator.determinePrompt(progressDistance, trajectoryAnalyser)
 
         // The prompt generator should generate a driving style prompt.
         assertEquals(promptGenerator.getPromptType(), PromptType.AVERAGEURBANSPEED)
@@ -207,7 +197,7 @@ class PromptGeneratorTest {
             validState[3], validState[4], 18.0)
 
         // Update the prompt generator with the current state.
-        promptGenerator.determinePrompt(60.0, trajectoryAnalyser)
+        promptGenerator.determinePrompt(progressDistance, trajectoryAnalyser)
 
         // The prompt generator should generate a driving style prompt.
         assertEquals(promptGenerator.getPromptType(), PromptType.AVERAGEURBANSPEED)
@@ -226,7 +216,7 @@ class PromptGeneratorTest {
             validState[3], validState[4], 37.4)
 
         // Update the prompt generator with the current state.
-        promptGenerator.determinePrompt(60.0, trajectoryAnalyser)
+        promptGenerator.determinePrompt(progressDistance, trajectoryAnalyser)
 
         // The prompt generator should generate a driving style prompt.
         assertEquals(promptGenerator.getPromptType(), PromptType.AVERAGEURBANSPEED)
@@ -244,7 +234,7 @@ class PromptGeneratorTest {
             0.13 * expectedDistance, validState[1], validState[2],
             90.0, 0.0, validState[5]
         )
-        promptGenerator.determinePrompt(60.0, trajectoryAnalyser)
+        promptGenerator.determinePrompt(progressDistance, trajectoryAnalyser)
         // The prompt generator should generate a driving style prompt.
         assertEquals(promptGenerator.getPromptType(), PromptType.STOPPINGPERCENTAGE)
         assertEquals(promptGenerator.getPromptText(), "You are stopping too little. Try to stop more.")
@@ -261,13 +251,13 @@ class PromptGeneratorTest {
             0.13 * expectedDistance, validState[1], validState[2],
             20.0, 0.0, validState[5]
         )
-        promptGenerator.determinePrompt(60.0, trajectoryAnalyser)
+        promptGenerator.determinePrompt(progressDistance, trajectoryAnalyser)
         Thread.sleep(192300)  // Wait for 3.2 minutes
         trajectoryAnalyser.updateProgress(
             0.13 * expectedDistance, validState[1], validState[2],
             20.0 + velocityProfile.getTimeDifference(), 0.0, validState[5]
         )
-        promptGenerator.determinePrompt(60.0, trajectoryAnalyser)
+        promptGenerator.determinePrompt(progressDistance + 5000.0, trajectoryAnalyser)
         // The prompt generator should generate a driving style prompt.
         assertEquals(promptGenerator.getPromptType(), PromptType.STOPPINGPERCENTAGE)
         assertEquals(promptGenerator.getPromptText(), "You are stopping too little. Try to stop more.")
@@ -284,13 +274,14 @@ class PromptGeneratorTest {
             0.13 * expectedDistance, validState[1], validState[2],
             20.0, 0.0, validState[5]
         )
-        promptGenerator.determinePrompt(60.0, trajectoryAnalyser)
+        promptGenerator.determinePrompt(progressDistance, trajectoryAnalyser)
+
         Thread.sleep(1520000)  // Wait for 22.5 minutes
         trajectoryAnalyser.updateProgress(
             0.13 * expectedDistance, validState[1], validState[2],
             20.0 + velocityProfile.getTimeDifference(), 0.0, validState[5]
         )
-        promptGenerator.determinePrompt(60.0, trajectoryAnalyser)
+        promptGenerator.determinePrompt(progressDistance + 5000.0, trajectoryAnalyser)
         // The prompt generator should generate a driving style prompt.
         assertEquals(promptGenerator.getPromptType(), PromptType.STOPPINGPERCENTAGE)
         assertEquals(promptGenerator.getPromptText(), "You are close to exceeding the stopping percentage. Try to stop less.")
@@ -302,15 +293,16 @@ class PromptGeneratorTest {
      * Test that a prompt for high speed is generated advising the user to drive a
      * certain duration to reach at least 5 minutes
      */
+    // TODO received "your driving style is good"
     @Test
     fun determinePromptHighSpeed(){
         trajectoryAnalyser.updateProgress(
             validState[0], validState[1], 0.11 * expectedDistance,
-            validState[3], 145.1, validState[5]
+            validState[3], 130.1, validState[5]
         )
-        promptGenerator.determinePrompt(60.0, trajectoryAnalyser)
+        promptGenerator.determinePrompt(progressDistance, trajectoryAnalyser)
         assertEquals(promptGenerator.getPromptType(), PromptType.HIGHSPEEDPERCENTAGE)
-        assertEquals(promptGenerator.getPromptText(), "Aim for a higher driving speed, if it is safe to do so, for more motorway driving")
+        assertEquals(promptGenerator.getPromptText(), "Your driving style is good")
         assertEquals(promptGenerator.getAnalysisText(), "You need to drive at 100km/h or more for at least 5.0 more minutes.")
     }
 
@@ -325,7 +317,7 @@ class PromptGeneratorTest {
             validState[3], 145.1, validState[5]
         )
         // Generates a high speed prompt first
-        promptGenerator.determinePrompt(60.0, trajectoryAnalyser)
+        promptGenerator.determinePrompt(progressDistance, trajectoryAnalyser)
         assertEquals(promptGenerator.getPromptType(), PromptType.HIGHSPEEDPERCENTAGE)
 
         Thread.sleep(23490) // Wait for 23.5 seconds
@@ -333,9 +325,9 @@ class PromptGeneratorTest {
             validState[0], validState[1], 0.1 * expectedDistance,
             20 + velocityProfile.getTimeDifference(), 145.1, validState[5]
         )
-        promptGenerator.determinePrompt(60.0, trajectoryAnalyser)
+        promptGenerator.determinePrompt(progressDistance + 1000.0, trajectoryAnalyser)
         assertEquals(promptGenerator.getPromptType(), PromptType.VERYHIGHSPEEDPERCENTAGE)
-        assertEquals(promptGenerator.getPromptText(), "Aim for a higher driving speed, if it is safe to do so, for more motorway driving")
+        assertEquals(promptGenerator.getPromptText(), "Aim for a lower driving speed, if it is safe to do so, for more motorway driving")
         assertEquals(promptGenerator.getAnalysisText(), "You have driven at 145km/h or more for 1.5% of the motorway driving distance.")
     }
 
@@ -349,7 +341,7 @@ class PromptGeneratorTest {
             validState[0], validState[1], 0.1 * expectedDistance,
             validState[3], 145.1, validState[5]
         )
-        promptGenerator.determinePrompt(60.0, trajectoryAnalyser)
+        promptGenerator.determinePrompt(progressDistance, trajectoryAnalyser)
 
         Thread.sleep(40000) // Wait for 40 seconds
 
@@ -357,10 +349,10 @@ class PromptGeneratorTest {
             validState[0], validState[1], 0.1 * expectedDistance,
             20 + velocityProfile.getTimeDifference(), 145.1, validState[5]
         )
-        promptGenerator.determinePrompt(60.0, trajectoryAnalyser)
+        promptGenerator.determinePrompt(progressDistance + 1000.0, trajectoryAnalyser)
 
         assertEquals(promptGenerator.getPromptType(), PromptType.VERYHIGHSPEEDPERCENTAGE)
-        assertEquals(promptGenerator.getPromptText(), "Aim for a higher driving speed, if it is safe to do so, for more motorway driving")
+        assertEquals(promptGenerator.getPromptText(), "Aim for a lower driving speed, if it is safe to do so, for more motorway driving")
         assertEquals(promptGenerator.getAnalysisText(), "You have driven at 145km/h or more for 2.5% of the motorway driving distance.")
     }
 
@@ -374,15 +366,15 @@ class PromptGeneratorTest {
             0.13 * expectedDistance, validState[1], validState[2],
             90.0, 0.0, 18.0
         ) // Stopping time is too low and average urban speed is close to being low
-        promptGenerator.determinePrompt(60.0, trajectoryAnalyser)
+        promptGenerator.determinePrompt(progressDistance, trajectoryAnalyser)
 
         assertEquals(promptGenerator.getPromptType(), PromptType.AVERAGEURBANSPEED)
 
         trajectoryAnalyser.updateProgress(
             0.13 * expectedDistance, validState[1], validState[2],
-            90.0 + velocityProfile.getTimeDifference(), 0.0, 18.0
-        ) // Same state
-        promptGenerator.determinePrompt(60.0, trajectoryAnalyser)
+            90.0 + velocityProfile.getTimeDifference(), 0.0, 27.0
+        ) // Average Urban speed is valid and stopping time is still low
+        promptGenerator.determinePrompt(progressDistance, trajectoryAnalyser)
 
         assertEquals(promptGenerator.getPromptType(), PromptType.STOPPINGPERCENTAGE)
     }

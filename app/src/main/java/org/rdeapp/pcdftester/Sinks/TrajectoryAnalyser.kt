@@ -324,7 +324,7 @@ class TrajectoryAnalyser(
         return if (currentSpeed < lowerThreshold) {
             lowerThreshold - currentSpeed
         } else if (currentSpeed > upperThreshold) {
-            currentSpeed - upperThreshold
+            upperThreshold - currentSpeed
         } else {
             0.0
         }
