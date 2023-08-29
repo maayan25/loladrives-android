@@ -21,7 +21,7 @@ class TrajectoryAnalyser(
     private var currentSpeed: Double = 0.0
     private var averageUrbanSpeed: Double = 0.0
 
-    private var isInvalid: Boolean = false
+    private var isInvalid: PromptType = PromptType.NONE
 
     /**
      * Check the progress of Urban, Rural and Motorway driving and update corresponding booleans.
@@ -56,10 +56,17 @@ class TrajectoryAnalyser(
     }
 
     /**
-     * @return whether the test is invalid or has exceeded the time limit.
+     * @return whether the test has exceeded the time limit.
      */
-    fun checkInvalid(): Boolean {
-        return isInvalid || totalTime > 120
+    fun checkTimeLimit(): Boolean {
+        return totalTime > 120
+    }
+
+    /**
+     * @return whether the test is invalid.
+     */
+    fun checkInvalid(): PromptType {
+        return isInvalid
     }
 
     /**
@@ -140,7 +147,7 @@ class TrajectoryAnalyser(
         val veryHighSpeedDuration = velocityProfile.getVeryHighSpeed() // in minutes
         if (veryHighSpeedDuration > 0.03 * 120 * 0.43) {
             // driven in > 145 km/h for more than 3% of the max test time
-            isInvalid = true
+            isInvalid = PromptType.VERYHIGHSPEEDPERCENTAGE
             return null
         } else if ((0.026 * 90 * 0.29) >= veryHighSpeedDuration && veryHighSpeedDuration >= (0.025 * 90 * 0.29)) {
             return 0.025 // driven in > 145 km/h for more 1.5% of the min test time
@@ -158,7 +165,7 @@ class TrajectoryAnalyser(
     private fun isHighSpeedValid(): Double? {
         return when (val highSpeed = canHighSpeedPass()) {
             null -> {
-                isInvalid = true
+                isInvalid = PromptType.HIGHSPEEDPERCENTAGE
                 null
             }
 
@@ -196,12 +203,12 @@ class TrajectoryAnalyser(
         when {
             currentStoppingTime > 0.3 * 120.0 && remainingTime < (0.3 * 120.0 - currentStoppingTime) -> {
                 // Stopping percentage is invalid and can't be decreased to pass
-                isInvalid = true
+                isInvalid = PromptType.STOPPINGPERCENTAGE
                 return null
             }
             currentStoppingTime < 0.06 * 90.0 && remainingTime < (0.06 * 90.0 - currentStoppingTime) -> {
                 // Stopping percentage is invalid and can't be increased to pass
-                isInvalid = true
+                isInvalid = PromptType.STOPPINGPERCENTAGE
                 return null
             }
             totalTime > 30 && currentStoppingTime < 0.02 * totalTime -> {
@@ -245,12 +252,12 @@ class TrajectoryAnalyser(
             }
             averageUrbanSpeed < 15.0 && (15.0 > requiredSpeed || 40.0 < requiredSpeed) && remainingTime < 20.0 -> {
                 // Need to drive faster to make the average urban speed higher to pass but can't
-                isInvalid = true
+                isInvalid = PromptType.AVERAGEURBANSPEED
                 return null
             }
             averageUrbanSpeed > 40.0 && (urbanDistanceLeft == 0.0 || (15.0 > requiredSpeed || 40.0 < requiredSpeed)) && remainingTime < 20.0 -> {
                 // Need to drive slower to make the average urban speed lower to pass but can't
-                isInvalid = true
+                isInvalid = PromptType.AVERAGEURBANSPEED
                 return null
             }
             averageUrbanSpeed > 35.0 && averageUrbanSpeed < 40.0 || averageUrbanSpeed > 40.0 -> {

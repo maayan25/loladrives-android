@@ -54,14 +54,21 @@ class PromptHandler (
      * an error message It also stops the current RDE test and navigates to the RDE setting.
      */
     private suspend fun handleInvalidRDE() {
-        if (trajectoryAnalyser.checkInvalid()) {
-            fragment.textViewRDEPrompt.text = "This RDE test is invalid, and will be stopped now."
+        if (trajectoryAnalyser.checkInvalid() != PromptType.NONE) {
+            fragment.textViewRDEPrompt.text =
+                "This RDE test is invalid because ${trajectoryAnalyser.checkInvalid().toString().toLowerCase()} constraint were not met."
             fragment.textViewRDEPrompt.setTextColor(Color.RED)
 
             // Only speak if the text has changed
             if (currentPromptText != promptGenerator.getPromptText()) {
                 speak()
             }
+        }
+
+        // EXCEEDED TIME LIMIT for rde test so stop tracking and move to RDE settings
+        if (trajectoryAnalyser.checkTimeLimit()){
+            fragment.textViewRDEPrompt.text = "You have exceeded the time limit for this RDE test"
+            fragment.textViewRDEPrompt.setTextColor(Color.RED)
 
             Toast.makeText(fragment.requireActivity(),"Exiting...", Toast.LENGTH_LONG).show()
 
