@@ -54,14 +54,21 @@ class PromptHandler (
      * an error message It also stops the current RDE test and navigates to the RDE setting.
      */
     private suspend fun handleInvalidRDE() {
-        if (trajectoryAnalyser.checkInvalid()) {
-            fragment.textViewRDEPrompt.text = "This RDE test is invalid, and will be stopped now."
+        if (trajectoryAnalyser.checkInvalid() != PromptType.NONE) {
+            fragment.textViewRDEPrompt.text =
+                "This RDE test is invalid because ${trajectoryAnalyser.checkInvalid().toString().toLowerCase()} constraint were not met."
             fragment.textViewRDEPrompt.setTextColor(Color.RED)
 
             // Only speak if the text has changed
             if (currentPromptText != promptGenerator.getPromptText()) {
                 speak()
             }
+        }
+
+        // EXCEEDED TIME LIMIT for rde test so stop tracking and move to RDE settings
+        if (trajectoryAnalyser.checkTimeLimit()){
+            fragment.textViewRDEPrompt.text = "You have exceeded the time limit for this RDE test"
+            fragment.textViewRDEPrompt.setTextColor(Color.RED)
 
             Toast.makeText(fragment.requireActivity(),"Exiting...", Toast.LENGTH_LONG).show()
 
@@ -77,23 +84,18 @@ class PromptHandler (
     }
 
     /**
-     * Generate the prompt according to the PromptType set from the analysis done on the trajectory.
-     * Sets the TextViews for the RDE prompt and analysis depending on the PromptType
+     * Generate the prompt according to the PromptType set from the analysis done on the trajectory
+     * so far.
+     * Sets the TextViews for the RDE prompt and analysis depending on the PromptType.
+     * Depending on the previous prompt type and the previous prompt text, the prompt is either spoken or not.
      */
     private fun generatePrompt(totalDistance: Double) {
         // Update the prompt and analysis texts and colours
         updatePrompt(totalDistance)
         newPromptType = promptGenerator.getPromptType()
 
-        // If the prompt type is DRIVINGSTYLE, then only speak if the text has changed
-        if (newPromptType == PromptType.DRIVINGSTYLE) {
-            // Only speak if the text has changed
-            if (currentPromptText != fragment.textViewRDEPrompt.text.toString() && currentPromptType != newPromptType){
-                speak()
-            }
-        }
-        // For all other prompt types, only speak if the prompt type has changed
-        else if (newPromptType != currentPromptType) {
+        // Only speak if the text has changed and the prompt type has changed
+        if (currentPromptText != fragment.textViewRDEPrompt.text.toString() && currentPromptType != newPromptType){
             speak()
         }
 
@@ -137,7 +139,7 @@ class PromptHandler (
      * If the SDK version is below LOLLIPOP, then a toast is shown that Text To Speech is not supported.
      */
     private fun speak() {
-        val text = fragment.textViewRDEPrompt.text.toString()
+        val text = fragment.textViewRDEPrompt.text.toString() // Get the text from the RDE prompt TextView
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             tts!!.speak(text, TextToSpeech.QUEUE_FLUSH, null, "ID")
         } else {
