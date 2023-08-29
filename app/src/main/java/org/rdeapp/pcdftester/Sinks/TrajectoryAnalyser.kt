@@ -1,5 +1,8 @@
 package org.rdeapp.pcdftester.Sinks
 
+/**
+ * Class to analyse the progress of the test and to check the constraints on the driving modes.
+ */
 class TrajectoryAnalyser(
     private val expectedDistance: Double,
     private val velocityProfile: VelocityProfile

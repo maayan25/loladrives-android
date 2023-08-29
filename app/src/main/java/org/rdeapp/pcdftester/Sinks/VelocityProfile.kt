@@ -2,6 +2,9 @@ package org.rdeapp.pcdftester.Sinks
 
 import java.util.Calendar
 
+/**
+ * Class for handling the velocity profile of the driver during a specific RDE test.
+ */
 class VelocityProfile {
     private var currentSpeed: Double = 0.0
     private var previousSpeed: Double = 0.0
@@ -13,6 +16,7 @@ class VelocityProfile {
 
     /**
      * Update the velocity profile with a new speed.
+     * @param speed The current speed of the vehicle in km/h.
      */
     fun updateVelocityProfile(speed: Double) {
         // update the timestamp of the last update
@@ -21,14 +25,14 @@ class VelocityProfile {
         currentSpeed = speed
         currentTime = Calendar.getInstance().timeInMillis
 
-        // check if the current speed is in a certain range
+        // check if the current speed is in a certain range, and update the velocity profile accordingly.
         setStop()
         setHighSpeed()
         setVeryHighSpeed()
     }
 
     /**
-     * Set the time spent stopping (at 0 km/h).
+     * Update the time spent stopping (at 0.0 km/h).
      */
     private fun setStop() {
         velStop = if (currentSpeed == 0.0 && previousSpeed == 0.0) {
@@ -39,7 +43,7 @@ class VelocityProfile {
     }
 
     /**
-     * Set the time spent at 145 km/h or more.
+     * Update the time spent at 145 km/h or more.
      */
     private fun setVeryHighSpeed() {
         vel145plus = if (currentSpeed > 145.0 && (previousSpeed == 0.0 || previousSpeed > 145.0)) {
@@ -50,7 +54,7 @@ class VelocityProfile {
     }
 
     /**
-     * Set the time spent at 100 km/h or more.
+     * Update the time spent at 100 km/h or more.
      */
     private fun setHighSpeed() {
         vel100plus = if (currentSpeed > 100.0 && (previousSpeed == 0.0 || previousSpeed > 100.0)) {
@@ -61,7 +65,7 @@ class VelocityProfile {
     }
 
     /**
-     * Set the timestamp of the last update.
+     * Update the timestamp of the last update.
      */
     private fun setLastUpdated() {
         lastUpdated = currentTime
@@ -94,10 +98,4 @@ class VelocityProfile {
     fun getTimeDifference(): Double {
         return (currentTime - lastUpdated).toDouble()
     }
-
-    // Functions for testing purposes
-    fun setStopTest(speed: Double) {
-        velStop = speed
-    }
-
 }
