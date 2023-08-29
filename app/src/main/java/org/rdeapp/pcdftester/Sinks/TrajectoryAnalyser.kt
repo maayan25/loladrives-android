@@ -4,27 +4,37 @@ class TrajectoryAnalyser(
     private val expectedDistance: Double,
     private val velocityProfile: VelocityProfile
 ) {
+    // Boolean variables to check the progress of the driving modes
     private var motorwayComplete: Boolean = false
     private var ruralComplete: Boolean = false
     private var urbanComplete: Boolean = false
     private var motorwaySufficient: Boolean = false
     private var ruralSufficient: Boolean = false
     private var urbanSufficient: Boolean = false
+    private var sufficientModes = mutableListOf<DrivingMode>()
 
+    // Proportions of the driving modes out of the expected total distance
     private var urbanProportion: Double = 0.0
     private var ruralProportion: Double = 0.0
     private var motorwayProportion: Double = 0.0
-    private var sufficientModes = mutableListOf<DrivingMode>()
 
+    // Variables to keep track of the current state of the test
     private var desiredDrivingMode: DrivingMode = DrivingMode.URBAN
     private var totalTime: Double = 0.0
     private var currentSpeed: Double = 0.0
     private var averageUrbanSpeed: Double = 0.0
 
+    // Variables to keep track of whether the test is invalid
     private var isInvalid: PromptType = PromptType.NONE
 
     /**
-     * Check the progress of Urban, Rural and Motorway driving and update corresponding booleans.
+     * Update the analyser with data on the progress of the test according to the received RTLola results.
+     * @param urbanDistance The distance travelled in the urban driving mode.
+     * @param ruralDistance The distance travelled in the rural driving mode.
+     * @param motorwayDistance The distance travelled in the motorway driving mode.
+     * @param totalTime The total time travelled so far.
+     * @param currentSpeed The current speed of the vehicle.
+     * @param averageUrbanSpeed The current average speed of the vehicle in the urban driving mode.
      */
     fun updateProgress(
         urbanDistance: Double,
@@ -38,6 +48,7 @@ class TrajectoryAnalyser(
         this.currentSpeed = currentSpeed
         this.averageUrbanSpeed = averageUrbanSpeed
 
+        // update the velocity profile according to the current speed
         velocityProfile.updateVelocityProfile(currentSpeed)
 
         // check the progress of the driving modes
@@ -87,15 +98,17 @@ class TrajectoryAnalyser(
     }
 
     /**
-     * @return the average speed of the urban driving mode
+     * @return the average speed of driving in the urban driving mode.
      */
     fun getAverageUrbanSpeed(): Double {
         return averageUrbanSpeed
     }
 
     /**
-     * Set the desired driving mode according to the proportions of urban, rural and motorway driving,
-     * the current driving mode and the previously desired driving mode.
+     * Set the desired driving mode according to:
+     * the proportions of all driving modes,
+     * the current driving mode
+     * and the previously desired driving mode.
      */
     fun setDesiredDrivingMode(): DrivingMode {
         when {
@@ -123,8 +136,12 @@ class TrajectoryAnalyser(
     }
 
     /**
-     * Choose which should be the next driving mode
-     * @return the chosen driving mode
+     * Choose which should be the next driving mode between 2 required driving modes.
+     * If the current driving mode or the recently desired driving modes are the 1st option, choose it
+     * to be the newly desired mode. Otherwise choose the alternative.
+     * @param firstDrivingMode The 1st driving mode to choose from.
+     * @param secondDrivingMode The 2nd driving mode to choose from.
+     * @return the chosen driving mode.
      */
     private fun chooseNextDrivingMode(
         firstDrivingMode: DrivingMode,
@@ -140,7 +157,7 @@ class TrajectoryAnalyser(
     /**
      * Check that a speed of 145km/h is driven for less than 3% of the maximum test time
      * of the motorway driving mode.
-     * If this is exceeded, set isInvalid to true.
+     * If this is exceeded, set isInvalid to the relevant prompt.
      * @return the duration of the driven speed if it is valid and requires warning, null otherwise
      */
     private fun isVeryHighSpeedValid(): Double? {
@@ -159,7 +176,7 @@ class TrajectoryAnalyser(
 
     /**
      * Check that the motorway driving style is valid and does not violate the constraints.
-     * If not and they cannot be validated, set isInvalid to true to terminate the test.
+     * If not and they cannot be validated, set isInvalid to the relevant prompt.
      * @return the remaining time to be driven if it is valid and requires instruction, null otherwise
      */
     private fun isHighSpeedValid(): Double? {
@@ -174,7 +191,9 @@ class TrajectoryAnalyser(
     }
 
     /**
-     * Consider time and distance left to compute whether high speed can pass
+     * Consider time and distance left to compute whether high speed can pass.
+     * @return the remaining time to be driven at 100km/h, 0,0 if it is exceeded, and null
+     * if it cannot be validated.
      */
     private fun canHighSpeedPass(): Double? {
         val highSpeedDuration = velocityProfile.getHighSpeed() // in minutes
@@ -193,8 +212,9 @@ class TrajectoryAnalyser(
 
     /**
      * Check if the stopping percentage can be increased or decreased to pass this condition.
+     * If it cannot be validated, set isInvalid to the relevant prompt.
      * @return the stopping percentage that can be increased or decreased to pass this condition
-     *         or null if not required.
+     *         or null if it cannot be validated.
      */
     private fun isStoppingTimeValid(): Double? {
         val currentStoppingTime: Double = velocityProfile.getStoppingTime() // in minutes
@@ -235,8 +255,9 @@ class TrajectoryAnalyser(
     /**
      * Check if the average urban speed is between 15km/h and 40km/h, or can be increased or
      * decreased to pass this condition.
+     * If it cannot be validated, set isInvalid to the relevant prompt.
      * @return the change in average urban speed to pass this condition
-     *         eg. -5 or 10, or null if not required.
+     *         eg. -5 or 10, or null if it is either valid or cannot be validated.
      */
     private fun isAverageSpeedValid(): Double? {
         val urbanDistanceLeft = (0.44 - urbanProportion) * expectedDistance
@@ -279,8 +300,9 @@ class TrajectoryAnalyser(
     }
 
     /**
-     * Check whether the distance in a driving mode is sufficient.
-     * @return a driving style has become sufficient, or null if none has become sufficient.
+     * Check whether the distance in a driving mode is sufficient. If it is, add the driving mode
+     * to the sufficientModes list.
+     * @return a driving style has recently become sufficient, or null if no sufficiency has changed.
      */
     fun checkSufficient(): DrivingMode? {
         if (motorwaySufficient && !sufficientModes.contains(DrivingMode.MOTORWAY)) {
@@ -297,7 +319,9 @@ class TrajectoryAnalyser(
     }
 
     /**
-     * Determine the current driving mode according to the current speed.
+     * Determine the current driving mode according to the current speed, and the thresholds
+     * determined by the RDE test regulations.
+     * @return the current driving mode.
      */
     fun currentDrivingMode(): DrivingMode {
         return when {
@@ -308,7 +332,9 @@ class TrajectoryAnalyser(
     }
 
     /**
-     * Calculate the speed change required to improve the driving style.
+     * Calculate the speed change required to enter the speed range for the desired driving mode.
+     * @return the difference in speed required to improve the driving style if the current speed
+     * is not in range. Otherwise, return 0.0.
      */
     fun computeSpeedChange(): Double {
         val lowerThreshold: Double
@@ -335,12 +361,14 @@ class TrajectoryAnalyser(
         } else {
             0.0
         }
-
     }
 
     /**
      * Calculate how long the user to should drive in the certain driving mode to improve their
      * driving style.
+     * The duration is calculated by the distance left to drive in the certain driving mode divided
+     * by the average speed of that driving mode.
+     * @return the duration in minutes.
      */
     fun computeDuration(): Double {
         when (desiredDrivingMode) {
