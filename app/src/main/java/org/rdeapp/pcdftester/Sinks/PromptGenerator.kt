@@ -37,7 +37,7 @@ class PromptGenerator (
      * @param totalDistance The total distance travelled so far.
      */
     private fun analyseTrajectory(totalDistance: Double) {
-        if (totalDistance >= 1/3 * expectedDistance) {
+        if (totalDistance >= 1/3 * expectedDistance && trajectoryAnalyser.getTotalTime() > 15) {
             // set the desired driving mode accrued to the sufficient driving modes so far
             desiredDrivingMode = trajectoryAnalyser.setDesiredDrivingMode()
 

@@ -63,7 +63,7 @@ class TrajectoryAnalyserTest {
 
         // Update the constraints to make sure the isInvalid variable is updated
         trajectoryAnalyser.getConstraints()
-        assertFalse(trajectoryAnalyser.checkInvalid())
+        assertEquals(trajectoryAnalyser.checkInvalid(),PromptType.NONE)
     }
 
     /**
@@ -80,7 +80,7 @@ class TrajectoryAnalyserTest {
         // Update the constraints to make sure the isInvalid variable is updated
         trajectoryAnalyser.getConstraints()
 
-        assertTrue(trajectoryAnalyser.checkInvalid())
+        assertNotEquals(trajectoryAnalyser.checkInvalid(),PromptType.NONE)
     }
 
     /**
@@ -97,7 +97,7 @@ class TrajectoryAnalyserTest {
         // Update the constraints to make sure the isInvalid variable is updated
         trajectoryAnalyser.getConstraints()
 
-        assertTrue(trajectoryAnalyser.checkInvalid())
+        assertNotEquals(trajectoryAnalyser.checkInvalid(),PromptType.NONE)
     }
 
     /**
@@ -169,7 +169,7 @@ class TrajectoryAnalyserTest {
         )
         // The constraint for very high speed should return a value of 1.5%.
         assertTrue(trajectoryAnalyser.getConstraints()[1] == null)
-        assertTrue(trajectoryAnalyser.checkInvalid())
+        assertEquals(trajectoryAnalyser.checkInvalid(),PromptType.VERYHIGHSPEEDPERCENTAGE)
     }
 
     /**
@@ -221,7 +221,7 @@ class TrajectoryAnalyserTest {
 
         // The constraint for high speed should return null because no remaining time is sufficient.
         assertTrue(trajectoryAnalyser.getConstraints()[0] == null)
-        assertTrue(trajectoryAnalyser.checkInvalid())
+        assertNotEquals(trajectoryAnalyser.checkInvalid(),PromptType.HIGHSPEEDPERCENTAGE)
     }
 
     /**
@@ -274,7 +274,7 @@ class TrajectoryAnalyserTest {
 
         // The constraint for stopping time should return null because no remaining time is sufficient.
         assertTrue(trajectoryAnalyser.getConstraints()[2] == null)
-        assertTrue(trajectoryAnalyser.checkInvalid())
+        assertNotEquals(trajectoryAnalyser.checkInvalid(),PromptType.STOPPINGPERCENTAGE)
     }
 
     /**
@@ -339,7 +339,7 @@ class TrajectoryAnalyserTest {
 
         // The constraint for average urban speed should return null because no remaining time is sufficient.
         assertTrue(trajectoryAnalyser.getConstraints()[3] == null)
-        assertTrue(trajectoryAnalyser.checkInvalid())
+        assertNotEquals(trajectoryAnalyser.checkInvalid(),PromptType.AVERAGEURBANSPEED)
     }
 
     /**
