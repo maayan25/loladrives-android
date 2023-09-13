@@ -223,6 +223,12 @@ class TrajectoryAnalyser(
         val currentStoppingTime: Double = velocityProfile.getStoppingTime() // in minutes
         val remainingTime = 120 - totalTime
 
+        if (totalTime < 15 || currentStoppingTime == 0.0) {
+            // Don't check for stopping time in the first 15 minutes of the test
+            // because the stopping percentage is not reliable.
+            return null
+        }
+
         when {
             currentStoppingTime > 0.3 * 120.0 && remainingTime < (0.3 * 120.0 - currentStoppingTime) -> {
                 // Stopping percentage is invalid and can't be decreased to pass
