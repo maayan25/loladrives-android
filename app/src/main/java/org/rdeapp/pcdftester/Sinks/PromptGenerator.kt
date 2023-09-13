@@ -23,7 +23,7 @@ class PromptGenerator (
     private var analysisText: String = ""
     private var promptColour: Int = Color.BLACK
     private var analysisColour: Int = Color.BLACK
-    private var promptType: PromptType? = null
+    private var promptType: PromptType? = PromptType.NONE
 
     // Array to store the current state of the RDE test constraints
     private var constraints: Array<Double?> = arrayOf(null)
@@ -37,7 +37,7 @@ class PromptGenerator (
      * @param totalDistance The total distance travelled so far.
      */
     private fun analyseTrajectory(totalDistance: Double) {
-        if (totalDistance >= 1/3 * expectedDistance) {
+        if (totalDistance >= 1/3 * expectedDistance && trajectoryAnalyser.getTotalTime() > 15) {
             // set the desired driving mode accrued to the sufficient driving modes so far
             desiredDrivingMode = trajectoryAnalyser.setDesiredDrivingMode()
 

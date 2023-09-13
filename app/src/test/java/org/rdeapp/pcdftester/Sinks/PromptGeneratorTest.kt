@@ -20,10 +20,10 @@ class PromptGeneratorTest {
     // Example states for the test.
     private var initialState: List<Double> = listOf<Double>(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
     private var sufficientState: List<Double> = // Urban is sufficient and constraints are not violated
-        listOf<Double>(0.34 * expectedDistance, 0.1 * expectedDistance, 0.1 * expectedDistance,
+        listOf<Double>(0.34 * expectedDistance * 1000, 0.1 * expectedDistance * 1000, 0.1 * expectedDistance * 1000,
             20.0, 30.0, 25.0)
     private var validState: List<Double> =
-        listOf<Double>(0.34 * expectedDistance, 0.33 * expectedDistance, 0.20 * expectedDistance,
+        listOf<Double>(0.34 * expectedDistance * 1000, 0.33 * expectedDistance * 1000, 0.20 * expectedDistance * 1000,
             60.0, 30.0, 25.0)
 
     @Before
@@ -92,7 +92,7 @@ class PromptGeneratorTest {
     @Test
     fun determinePromptDrivingStyleUrban(){
         trajectoryAnalyser.updateProgress(
-            0.1 * expectedDistance, validState[1], validState[2],
+            0.1 * expectedDistance * 1000, validState[1], validState[2],
             validState[3], 70.5, validState[5]
         ) // Urban distance isn't sufficient and Motorway and Rural are sufficient
 
@@ -112,7 +112,7 @@ class PromptGeneratorTest {
     @Test
     fun determinePromptDrivingStyleRural(){
         trajectoryAnalyser.updateProgress(
-            validState[0], 0.13 * expectedDistance, validState[2],
+            validState[0], 0.13 * expectedDistance * 1000, validState[2],
             validState[3], 10.5, validState[5]
         ) // Rural distance isn't sufficient and Motorway and Urban are sufficient
 
@@ -137,7 +137,7 @@ class PromptGeneratorTest {
         trajectoryAnalyser.updateProgress(
             validState[0],
             validState[1],
-            0.05 * expectedDistance,
+            0.05 * expectedDistance * 1000,
             validState[3], 70.0, validState[5]
         ) // Motorway distance isn't sufficient and Rural and Urban are sufficient
 
@@ -155,7 +155,7 @@ class PromptGeneratorTest {
     @Test
     fun determinePromptAverageUrbanSpeedTooHigh() {
         trajectoryAnalyser.updateProgress(
-            0.1 * expectedDistance, validState[1], validState[2],
+            0.1 * expectedDistance * 1000, validState[1], validState[2],
             validState[3], validState[4], 45.0)
 
         // Update the prompt generator with the current state.
@@ -174,7 +174,7 @@ class PromptGeneratorTest {
     @Test
     fun determinePromptAverageUrbanSpeedTooLow() {
         trajectoryAnalyser.updateProgress(
-            0.1 * expectedDistance, validState[1], validState[2],
+            0.1 * expectedDistance * 1000, validState[1], validState[2],
             validState[3], validState[4], 6.0)
 
         // Update the prompt generator with the current state.
@@ -193,7 +193,7 @@ class PromptGeneratorTest {
     @Test
     fun determinePromptAverageUrbanSpeedLow() {
         trajectoryAnalyser.updateProgress(
-            0.1 * expectedDistance, validState[1], validState[2],
+            0.1 * expectedDistance * 1000, validState[1], validState[2],
             validState[3], validState[4], 18.0)
 
         // Update the prompt generator with the current state.
@@ -212,7 +212,7 @@ class PromptGeneratorTest {
     @Test
     fun determinePromptAverageUrbanSpeedHigh() {
         trajectoryAnalyser.updateProgress(
-            0.1 * expectedDistance, validState[1], validState[2],
+            0.1 * expectedDistance * 1000, validState[1], validState[2],
             validState[3], validState[4], 37.4)
 
         // Update the prompt generator with the current state.
@@ -225,17 +225,40 @@ class PromptGeneratorTest {
     }
 
     /**
+     * Test that a warning for stopping percentage is generated when stopping time 0.0
+     * and driving style URBAN is recommended
+     */
+    @Test
+    fun determinePromptNoStoppingTime(){
+        trajectoryAnalyser.updateProgress(
+            0.13 * expectedDistance * 1000, validState[1], validState[2],
+            90.0, 1.0, validState[5]
+        )
+
+        promptGenerator.determinePrompt(progressDistance, trajectoryAnalyser)
+        // The prompt generator should generate a driving style prompt.
+        assertEquals(promptGenerator.getPromptType(), PromptType.DRIVINGSTYLE)
+    }
+
+    /**
      * Test that a warning for stopping percentage is generated when stopping time is
      * very low and some time has passed and driving style URBAN is recommended
      */
     @Test
     fun determinePromptVeryLowStoppingTime(){
         trajectoryAnalyser.updateProgress(
-            0.13 * expectedDistance, validState[1], validState[2],
+            0.13 * expectedDistance * 1000, validState[1], validState[2],
             90.0, 0.0, validState[5]
         )
+
         promptGenerator.determinePrompt(progressDistance, trajectoryAnalyser)
-        // The prompt generator should generate a driving style prompt.
+        Thread.sleep(500)  // Wait for stopping time to be valid
+
+        // Update the prompt generator with the current state.
+        promptGenerator.determinePrompt(progressDistance, trajectoryAnalyser)
+
+        promptGenerator.determinePrompt(progressDistance, trajectoryAnalyser)
+        // The prompt generator should generate a stopping percentage prompt.
         assertEquals(promptGenerator.getPromptType(), PromptType.STOPPINGPERCENTAGE)
         assertEquals(promptGenerator.getPromptText(), "You are stopping too little. Try to stop more.")
         assertEquals(promptGenerator.getAnalysisText(), "You need to stop for at least 6.0% more of the urban time.")
@@ -248,13 +271,13 @@ class PromptGeneratorTest {
     @Test
     fun determinePromptLowStoppingTime(){
         trajectoryAnalyser.updateProgress(
-            0.13 * expectedDistance, validState[1], validState[2],
+            0.13 * expectedDistance * 1000, validState[1], validState[2],
             20.0, 0.0, validState[5]
         )
         promptGenerator.determinePrompt(progressDistance, trajectoryAnalyser)
         Thread.sleep(192300)  // Wait for 3.2 minutes
         trajectoryAnalyser.updateProgress(
-            0.13 * expectedDistance, validState[1], validState[2],
+            0.13 * expectedDistance * 1000, validState[1], validState[2],
             20.0 + velocityProfile.getTimeDifference(), 0.0, validState[5]
         )
         promptGenerator.determinePrompt(progressDistance + 5000.0, trajectoryAnalyser)
@@ -271,14 +294,14 @@ class PromptGeneratorTest {
     @Test
     fun determinePromptHighStoppingTime(){
         trajectoryAnalyser.updateProgress(
-            0.13 * expectedDistance, validState[1], validState[2],
+            0.13 * expectedDistance * 1000, validState[1], validState[2],
             20.0, 0.0, validState[5]
         )
         promptGenerator.determinePrompt(progressDistance, trajectoryAnalyser)
 
         Thread.sleep(1520000)  // Wait for 22.5 minutes
         trajectoryAnalyser.updateProgress(
-            0.13 * expectedDistance, validState[1], validState[2],
+            0.13 * expectedDistance * 1000, validState[1], validState[2],
             20.0 + velocityProfile.getTimeDifference(), 0.0, validState[5]
         )
         promptGenerator.determinePrompt(progressDistance + 5000.0, trajectoryAnalyser)
@@ -297,7 +320,7 @@ class PromptGeneratorTest {
     @Test
     fun determinePromptHighSpeed(){
         trajectoryAnalyser.updateProgress(
-            validState[0], validState[1], 0.11 * expectedDistance,
+            validState[0], validState[1], 0.11 * expectedDistance * 1000,
             validState[3], 130.1, validState[5]
         )
         promptGenerator.determinePrompt(progressDistance, trajectoryAnalyser)
@@ -313,7 +336,7 @@ class PromptGeneratorTest {
     @Test
     fun determinePromptAndSetPromptMotorway(){
         trajectoryAnalyser.updateProgress(
-            validState[0], validState[1], 0.1 * expectedDistance,
+            validState[0], validState[1], 0.1 * expectedDistance * 1000,
             validState[3], 145.1, validState[5]
         )
         // Generates a high speed prompt first
@@ -322,7 +345,7 @@ class PromptGeneratorTest {
 
         Thread.sleep(23490) // Wait for 23.5 seconds
         trajectoryAnalyser.updateProgress(
-            validState[0], validState[1], 0.1 * expectedDistance,
+            validState[0], validState[1], 0.1 * expectedDistance * 1000,
             20 + velocityProfile.getTimeDifference(), 145.1, validState[5]
         )
         promptGenerator.determinePrompt(progressDistance + 1000.0, trajectoryAnalyser)
@@ -338,7 +361,7 @@ class PromptGeneratorTest {
     @Test
     fun determinePromptVeryHighSpeed(){
         trajectoryAnalyser.updateProgress(
-            validState[0], validState[1], 0.1 * expectedDistance,
+            validState[0], validState[1], 0.1 * expectedDistance * 1000,
             validState[3], 145.1, validState[5]
         )
         promptGenerator.determinePrompt(progressDistance, trajectoryAnalyser)
@@ -346,7 +369,7 @@ class PromptGeneratorTest {
         Thread.sleep(40000) // Wait for 40 seconds
 
         trajectoryAnalyser.updateProgress(
-            validState[0], validState[1], 0.1 * expectedDistance,
+            validState[0], validState[1], 0.1 * expectedDistance * 1000,
             20 + velocityProfile.getTimeDifference(), 145.1, validState[5]
         )
         promptGenerator.determinePrompt(progressDistance + 1000.0, trajectoryAnalyser)
@@ -363,7 +386,7 @@ class PromptGeneratorTest {
     @Test
     fun setPromptTypeUrban(){
         trajectoryAnalyser.updateProgress(
-            0.13 * expectedDistance, validState[1], validState[2],
+            0.13 * expectedDistance * 1000, validState[1], validState[2],
             90.0, 0.0, 18.0
         ) // Stopping time is too low and average urban speed is close to being low
         promptGenerator.determinePrompt(progressDistance, trajectoryAnalyser)
@@ -371,7 +394,7 @@ class PromptGeneratorTest {
         assertEquals(promptGenerator.getPromptType(), PromptType.AVERAGEURBANSPEED)
 
         trajectoryAnalyser.updateProgress(
-            0.13 * expectedDistance, validState[1], validState[2],
+            0.13 * expectedDistance * 1000, validState[1], validState[2],
             90.0 + velocityProfile.getTimeDifference(), 0.0, 27.0
         ) // Average Urban speed is valid and stopping time is still low
         promptGenerator.determinePrompt(progressDistance, trajectoryAnalyser)

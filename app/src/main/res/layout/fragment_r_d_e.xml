@@ -24,7 +24,8 @@
             android:gravity="center"
             android:layout_marginBottom="15dp"
             app:layout_constraintBottom_toTopOf="@+id/textViewAnalysis"
-            app:layout_constraintRight_toLeftOf="@id/guideline37"/>
+            app:layout_constraintRight_toRightOf="@+id/guideline46"
+            app:layout_constraintLeft_toLeftOf="@+id/guideline8"/>
 
         <TextView
             android:id="@+id/textViewAnalysis"
@@ -37,7 +38,8 @@
             android:gravity="center"
             android:layout_marginBottom="15dp"
             app:layout_constraintBottom_toTopOf="@+id/textViewTotalTime"
-            app:layout_constraintRight_toLeftOf="@id/textView6"/>
+            app:layout_constraintRight_toLeftOf="@id/guideline46"
+            app:layout_constraintLeft_toLeftOf="@+id/guideline8"/>
 
 
         <com.akexorcist.roundcornerprogressbar.RoundCornerProgressBar

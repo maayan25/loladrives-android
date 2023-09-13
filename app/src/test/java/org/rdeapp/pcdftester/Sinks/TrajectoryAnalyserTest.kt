@@ -15,7 +15,7 @@ class TrajectoryAnalyserTest {
     // Example states for the test.
     private var initialState: List<Double> = listOf<Double>(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
     private var validState: List<Double> =
-        listOf<Double>(0.34 * expectedDistance, 0.33 * expectedDistance, 0.33 * expectedDistance,
+        listOf<Double>(0.34 * expectedDistance * 1000, 0.33 * expectedDistance * 1000, 0.33 * expectedDistance * 1000,
             25.0, 30.0, 25.0)
 
     @Before
@@ -63,7 +63,7 @@ class TrajectoryAnalyserTest {
 
         // Update the constraints to make sure the isInvalid variable is updated
         trajectoryAnalyser.getConstraints()
-        assertFalse(trajectoryAnalyser.checkInvalid())
+        assertEquals(trajectoryAnalyser.checkInvalid(),PromptType.NONE)
     }
 
     /**
@@ -80,7 +80,7 @@ class TrajectoryAnalyserTest {
         // Update the constraints to make sure the isInvalid variable is updated
         trajectoryAnalyser.getConstraints()
 
-        assertTrue(trajectoryAnalyser.checkInvalid())
+        assertNotEquals(trajectoryAnalyser.checkInvalid(),PromptType.NONE)
     }
 
     /**
@@ -97,7 +97,7 @@ class TrajectoryAnalyserTest {
         // Update the constraints to make sure the isInvalid variable is updated
         trajectoryAnalyser.getConstraints()
 
-        assertTrue(trajectoryAnalyser.checkInvalid())
+        assertNotEquals(trajectoryAnalyser.checkInvalid(),PromptType.NONE)
     }
 
     /**
@@ -169,7 +169,7 @@ class TrajectoryAnalyserTest {
         )
         // The constraint for very high speed should return a value of 1.5%.
         assertTrue(trajectoryAnalyser.getConstraints()[1] == null)
-        assertTrue(trajectoryAnalyser.checkInvalid())
+        assertEquals(trajectoryAnalyser.checkInvalid(),PromptType.VERYHIGHSPEEDPERCENTAGE)
     }
 
     /**
@@ -221,7 +221,7 @@ class TrajectoryAnalyserTest {
 
         // The constraint for high speed should return null because no remaining time is sufficient.
         assertTrue(trajectoryAnalyser.getConstraints()[0] == null)
-        assertTrue(trajectoryAnalyser.checkInvalid())
+        assertEquals(trajectoryAnalyser.checkInvalid(),PromptType.HIGHSPEEDPERCENTAGE)
     }
 
     /**
@@ -274,7 +274,7 @@ class TrajectoryAnalyserTest {
 
         // The constraint for stopping time should return null because no remaining time is sufficient.
         assertTrue(trajectoryAnalyser.getConstraints()[2] == null)
-        assertTrue(trajectoryAnalyser.checkInvalid())
+        assertEquals(trajectoryAnalyser.checkInvalid(),PromptType.STOPPINGPERCENTAGE)
     }
 
     /**
@@ -339,7 +339,7 @@ class TrajectoryAnalyserTest {
 
         // The constraint for average urban speed should return null because no remaining time is sufficient.
         assertTrue(trajectoryAnalyser.getConstraints()[3] == null)
-        assertTrue(trajectoryAnalyser.checkInvalid())
+        assertEquals(trajectoryAnalyser.checkInvalid(),PromptType.AVERAGEURBANSPEED)
     }
 
     /**
@@ -377,9 +377,9 @@ class TrajectoryAnalyserTest {
     fun setDesiredDrivingModeMultipleInsufficient() {
         // Should be set to Urban as it is the current Desired driving mode.
         trajectoryAnalyser.updateProgress(
-            0.15 * expectedDistance,
+            0.15 * expectedDistance * 1000,
             validState[0],
-            0.15 * expectedDistance,
+            0.15 * expectedDistance * 1000,
             validState[3], validState[4], validState[5]
         )
         var desiredDrivingMode = trajectoryAnalyser.setDesiredDrivingMode()
@@ -388,8 +388,8 @@ class TrajectoryAnalyserTest {
         // Should be set to Motorway as Rural is not current Desired Mode and not Current Speed.
         trajectoryAnalyser.updateProgress(
             validState[0],
-            0.15 * expectedDistance,
-            0.15 * expectedDistance,
+            0.15 * expectedDistance * 1000,
+            0.15 * expectedDistance * 1000,
             validState[3], validState[4], validState[5]
         )
         desiredDrivingMode = trajectoryAnalyser.setDesiredDrivingMode()
@@ -399,7 +399,7 @@ class TrajectoryAnalyserTest {
         trajectoryAnalyser.updateProgress(
             0.15 * expectedDistance,
             validState[1],
-            0.15 * expectedDistance,
+            0.15 * expectedDistance * 1000,
             validState[3], validState[4], validState[5]
         )
         desiredDrivingMode = trajectoryAnalyser.setDesiredDrivingMode()
@@ -415,7 +415,7 @@ class TrajectoryAnalyserTest {
         trajectoryAnalyser.updateProgress(
             validState[0],
             validState[1],
-            0.10 * expectedDistance,
+            0.10 * expectedDistance * 1000,
             validState[3], validState[4], validState[5]
         )
         val desiredDrivingMode = trajectoryAnalyser.setDesiredDrivingMode()
@@ -431,31 +431,31 @@ class TrajectoryAnalyserTest {
     fun checkSufficient() {
         // None of the driving modes are sufficient yet so should return null.
         trajectoryAnalyser.updateProgress(
-            0.15 * expectedDistance,
-            0.15 * expectedDistance,
-            0.15 * expectedDistance,
+            0.15 * expectedDistance * 1000,
+            0.15 * expectedDistance * 1000,
+            0.15 * expectedDistance * 1000,
             validState[3], validState[4], validState[5]
         )
         assertTrue(trajectoryAnalyser.checkSufficient() == null)
         // Urban driving mode is now sufficient so should return that
         trajectoryAnalyser.updateProgress(
-            0.23 * expectedDistance,
-            0.15 * expectedDistance,
-            0.15 * expectedDistance,
+            0.23 * expectedDistance * 1000,
+            0.15 * expectedDistance * 1000,
+            0.15 * expectedDistance * 1000,
             validState[3], validState[4], validState[5]
         )
         assertTrue(trajectoryAnalyser.checkSufficient() == DrivingMode.URBAN)
         trajectoryAnalyser.updateProgress(
-            0.29 * expectedDistance,
-            0.15 * expectedDistance,
-            0.18 * expectedDistance,
+            0.29 * expectedDistance * 1000,
+            0.15 * expectedDistance * 1000,
+            0.18 * expectedDistance * 1000,
             validState[3], validState[4], validState[5]
         )
         assertTrue(trajectoryAnalyser.checkSufficient() == DrivingMode.MOTORWAY)
         trajectoryAnalyser.updateProgress(
-            0.29 * expectedDistance,
-            0.19 * expectedDistance,
-            0.20 * expectedDistance,
+            0.29 * expectedDistance * 1000,
+            0.19 * expectedDistance * 1000,
+            0.20 * expectedDistance * 1000,
             validState[3], validState[4], validState[5]
         )
         assertTrue(trajectoryAnalyser.checkSufficient() == DrivingMode.RURAL)
@@ -497,7 +497,7 @@ class TrajectoryAnalyserTest {
     fun computeSpeedChange() {
         trajectoryAnalyser.updateProgress(
             validState[0],
-            0.15 * expectedDistance,
+            0.15 * expectedDistance * 1000,
             validState[2],
             validState[3], 40.5 , validState[5]
         )
@@ -519,7 +519,9 @@ class TrajectoryAnalyserTest {
             validState[3], 75.0 , validState[5]
         )
         trajectoryAnalyser.setDesiredDrivingMode() // RURAL is the desired driving mode
+        println(trajectoryAnalyser.setDesiredDrivingMode())
         val speedChange = trajectoryAnalyser.computeSpeedChange()
+        println(speedChange)
         assertTrue(speedChange == 0.0)
     }
 
@@ -529,7 +531,7 @@ class TrajectoryAnalyserTest {
     @Test
     fun computeDuration() {
         trajectoryAnalyser.updateProgress(
-            0.10 * expectedDistance, validState[1], validState[2],
+            0.10 * expectedDistance * 1000, validState[1], validState[2],
             validState[3], validState[4], validState[5]
         )
         trajectoryAnalyser.setDesiredDrivingMode() // URBAN is the desired driving mode
@@ -537,7 +539,7 @@ class TrajectoryAnalyserTest {
         assertTrue(duration == 56.44)  // Check that the correct time is returned
 
         trajectoryAnalyser.updateProgress(
-            0.2 * expectedDistance, validState[1], validState[2],
+            0.2 * expectedDistance * 1000, validState[1], validState[2],
             validState[3], validState[4], validState[5]
         )
         trajectoryAnalyser.setDesiredDrivingMode() // URBAN is the desired driving mode

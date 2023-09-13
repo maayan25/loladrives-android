@@ -56,9 +56,9 @@ class TrajectoryAnalyser(
 
         // check the progress of the driving modes
         // TODO: Check if the outputs from the validator for the distances are in km or m
-        urbanProportion = urbanDistance / expectedDistance
-        ruralProportion = ruralDistance / expectedDistance
-        motorwayProportion = motorwayDistance / expectedDistance
+        urbanProportion = urbanDistance / 1000 / expectedDistance
+        ruralProportion = ruralDistance / 1000 / expectedDistance
+        motorwayProportion = motorwayDistance / 1000 / expectedDistance
 
         motorwayComplete = motorwayProportion > 0.43
         ruralComplete = ruralProportion > 0.43
@@ -84,7 +84,7 @@ class TrajectoryAnalyser(
     }
 
     /**
-     * @return the Array of the constrains on motorway and urban driving modes. All return values
+     * @return the Array of the constraints on motorway and urban driving modes. All return values
      * are null if the constraint is satisfied or is invalid, and a Double otherwise.
      * [0] = isHighSpeedValid()
      * [1] = isVeryHighSpeedValid()
@@ -141,7 +141,7 @@ class TrajectoryAnalyser(
     /**
      * Choose which should be the next driving mode between 2 required driving modes.
      * If the current driving mode or the recently desired driving modes are the 1st option, choose it
-     * to be the newly desired mode. Otherwise choose the alternative.
+     * to be the newly desired mode. Otherwise, choose the alternative.
      * @param firstDrivingMode The 1st driving mode to choose from.
      * @param secondDrivingMode The 2nd driving mode to choose from.
      * @return the chosen driving mode.
@@ -222,6 +222,12 @@ class TrajectoryAnalyser(
     private fun isStoppingTimeValid(): Double? {
         val currentStoppingTime: Double = velocityProfile.getStoppingTime() // in minutes
         val remainingTime = 120 - totalTime
+
+        if (totalTime < 15 || currentStoppingTime == 0.0) {
+            // Don't check for stopping time in the first 15 minutes of the test
+            // because the stopping percentage is not reliable.
+            return null
+        }
 
         when {
             currentStoppingTime > 0.3 * 120.0 && remainingTime < (0.3 * 120.0 - currentStoppingTime) -> {
@@ -393,5 +399,12 @@ class TrajectoryAnalyser(
                 return motorwayDistanceLeft * 60 / 115
             }
         }
+    }
+
+    /**
+     * Return total time the test has been running for
+     */
+    fun getTotalTime(): Double{
+        return totalTime
     }
 }
