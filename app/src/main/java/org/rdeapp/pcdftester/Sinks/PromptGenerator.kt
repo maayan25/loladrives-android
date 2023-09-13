@@ -23,7 +23,7 @@ class PromptGenerator (
     private var analysisText: String = ""
     private var promptColour: Int = Color.BLACK
     private var analysisColour: Int = Color.BLACK
-    private var promptType: PromptType? = null
+    private var promptType: PromptType? = PromptType.NONE
 
     // Array to store the current state of the RDE test constraints
     private var constraints: Array<Double?> = arrayOf(null)
