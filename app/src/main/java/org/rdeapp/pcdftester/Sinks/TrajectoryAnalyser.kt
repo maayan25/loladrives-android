@@ -245,7 +245,7 @@ class TrajectoryAnalyser(
             }
             totalTime > 30 && currentStoppingTime < 0.02 * totalTime -> {
                 // Stopping percentage is very low and some of the test time has passed
-                return  0.06 - (currentStoppingTime / 90.0)
+                return  0.0
             }
             currentStoppingTime >= 0.03 * 90.0 && currentStoppingTime < 0.06 * 120.0 -> {
                 // Stopping percentage (Between 2.7 and 7.2 minutes) is close to being valid but can be increased to pass
