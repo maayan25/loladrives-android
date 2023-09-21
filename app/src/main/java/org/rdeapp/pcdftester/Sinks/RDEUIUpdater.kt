@@ -63,6 +63,7 @@ class RDEUIUpdater(
 
                 // Check progress (urban[1], rural[2], motorway[3])
                 fragment.trajectoryAnalyser.updateProgress(
+                    outputs[0],
                     outputs[1],
                     outputs[2],
                     outputs[3],

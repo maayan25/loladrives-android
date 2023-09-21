@@ -262,7 +262,7 @@ class PromptGenerator (
             promptColour = Color.RED
         } else{
             promptText = "You are close to exceeding the stopping percentage. Try to stop less."
-            analysisText = "You are stopping ${-(stoppingPercentageRounded) * 100}% less than the upper bound."
+            analysisText = "You are stopping ${-(stoppingPercentageRounded) * 100}% more than the upper bound."
             promptColour = Color.GREEN
         }
     }

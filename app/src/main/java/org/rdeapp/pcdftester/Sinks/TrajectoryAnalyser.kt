@@ -4,7 +4,7 @@ package org.rdeapp.pcdftester.Sinks
  * Class to analyse the progress of the test and to check the constraints on the driving modes.
  */
 class TrajectoryAnalyser(
-    private val expectedDistance: Double,
+    private var expectedDistance: Double,
     private val velocityProfile: VelocityProfile
 ) {
     // Boolean variables to check the progress of the driving modes
@@ -40,6 +40,7 @@ class TrajectoryAnalyser(
      * @param averageUrbanSpeed The current average speed of the vehicle in the urban driving mode.
      */
     fun updateProgress(
+        totalDistance: Double,
         urbanDistance: Double,
         ruralDistance: Double,
         motorwayDistance: Double,
@@ -50,6 +51,9 @@ class TrajectoryAnalyser(
         this.totalTime = totalTime
         this.currentSpeed = currentSpeed
         this.averageUrbanSpeed = averageUrbanSpeed
+
+        // update the expected distance if the total distance travelled so far is greater than the expected distance
+        expectedDistance = maxOf(expectedDistance, totalDistance / 1000.0)
 
         // update the velocity profile according to the current speed
         velocityProfile.updateVelocityProfile(currentSpeed)
