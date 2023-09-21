@@ -37,7 +37,7 @@ class PromptGenerator (
      * @param totalDistance The total distance travelled so far.
      */
     private fun analyseTrajectory(totalDistance: Double) {
-        if (totalDistance >= 1/3 * expectedDistance && trajectoryAnalyser.getTotalTime() > 15) {
+        if ((totalDistance >= 1/4 * expectedDistance || sufficientDrivingMode != null) && trajectoryAnalyser.getTotalTime() > 15) {
             // set the desired driving mode accrued to the sufficient driving modes so far
             desiredDrivingMode = trajectoryAnalyser.setDesiredDrivingMode()
 
@@ -79,10 +79,10 @@ class PromptGenerator (
             // in urban driving mode, check if the average urban speed or stopping time constraints
             // are violated. If not, set to a driving mode prompt type.
             DrivingMode.URBAN -> {
-                if (averageUrbanSpeed != null && averageUrbanSpeed != 0.0 && promptType != PromptType.STOPPINGPERCENTAGE) {
-                    promptType = PromptType.AVERAGEURBANSPEED
-                } else if (stoppingTime != null && stoppingTime != -0.06) { // TODO change this to a better value
+                if (stoppingTime != null && stoppingTime != -0.06  && promptType != PromptType.AVERAGEURBANSPEED) {
                     promptType = PromptType.STOPPINGPERCENTAGE
+                } else if (averageUrbanSpeed != null && averageUrbanSpeed != 0.0) {
+                    promptType = PromptType.AVERAGEURBANSPEED
                 } else {
                     setModePromptType(totalDistance)
                 }

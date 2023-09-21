@@ -55,7 +55,6 @@ class TrajectoryAnalyser(
         velocityProfile.updateVelocityProfile(currentSpeed)
 
         // check the progress of the driving modes
-        // TODO: Check if the outputs from the validator for the distances are in km or m
         urbanProportion = urbanDistance / 1000 / expectedDistance
         ruralProportion = ruralDistance / 1000 / expectedDistance
         motorwayProportion = motorwayDistance / 1000 / expectedDistance

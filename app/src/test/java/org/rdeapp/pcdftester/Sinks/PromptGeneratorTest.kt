@@ -108,7 +108,6 @@ class PromptGeneratorTest {
     /**
      * Test that the prompt generator generates a prompt for the driving style RURAL
      */
-    // TODO received stopping percentage
     @Test
     fun determinePromptDrivingStyleRural(){
         trajectoryAnalyser.updateProgress(
@@ -316,7 +315,6 @@ class PromptGeneratorTest {
      * Test that a prompt for high speed is generated advising the user to drive a
      * certain duration to reach at least 5 minutes
      */
-    // TODO received "your driving style is good"
     @Test
     fun determinePromptHighSpeed(){
         trajectoryAnalyser.updateProgress(
