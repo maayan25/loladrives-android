@@ -173,7 +173,7 @@ class PromptGenerator (
      * (Less than 1/3 of the expected distance is travelled)
      */
     private fun setNonePrompt() {
-        promptText = "Analysis will be available after 1/3 of the test is completed."
+        promptText = "Analysis will be available after a substantial amount of the test is completed."
         analysisText = ""
         promptColour = Color.BLACK
         analysisColour = Color.BLACK
@@ -260,7 +260,11 @@ class PromptGenerator (
             promptText = "You are stopping too little. Try to stop more."
             analysisText = "You need to stop for at least ${stoppingPercentageRounded * 100}% more of the urban time."
             promptColour = Color.RED
-        } else{
+        } else if ( stoppingPercentageRounded == 0.0){
+            promptText = "You are stopping too little. Try to stop more."
+            analysisText = "Your stopping percentage is very low and 30 minutes of the test has passed."
+            promptColour = Color.RED
+        } else {
             promptText = "You are close to exceeding the stopping percentage. Try to stop less."
             analysisText = "You are stopping ${-(stoppingPercentageRounded) * 100}% more than the upper bound."
             promptColour = Color.GREEN
