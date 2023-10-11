@@ -4,7 +4,7 @@ package org.rdeapp.pcdftester.Sinks
  * Class to analyse the progress of the test and to check the constraints on the driving modes.
  */
 class TrajectoryAnalyser(
-    private val expectedDistance: Double,
+    private var expectedDistance: Double,
     private val velocityProfile: VelocityProfile
 ) {
     // Boolean variables to check the progress of the driving modes
@@ -40,6 +40,7 @@ class TrajectoryAnalyser(
      * @param averageUrbanSpeed The current average speed of the vehicle in the urban driving mode.
      */
     fun updateProgress(
+        totalDistance: Double,
         urbanDistance: Double,
         ruralDistance: Double,
         motorwayDistance: Double,
@@ -51,11 +52,13 @@ class TrajectoryAnalyser(
         this.currentSpeed = currentSpeed
         this.averageUrbanSpeed = averageUrbanSpeed
 
+        // update the expected distance if the total distance travelled so far is greater than the expected distance
+        expectedDistance = maxOf(expectedDistance, totalDistance / 1000.0)
+
         // update the velocity profile according to the current speed
         velocityProfile.updateVelocityProfile(currentSpeed)
 
         // check the progress of the driving modes
-        // TODO: Check if the outputs from the validator for the distances are in km or m
         urbanProportion = urbanDistance / 1000 / expectedDistance
         ruralProportion = ruralDistance / 1000 / expectedDistance
         motorwayProportion = motorwayDistance / 1000 / expectedDistance
@@ -242,7 +245,7 @@ class TrajectoryAnalyser(
             }
             totalTime > 30 && currentStoppingTime < 0.02 * totalTime -> {
                 // Stopping percentage is very low and some of the test time has passed
-                return  0.06 - (currentStoppingTime / 90.0)
+                return  0.0
             }
             currentStoppingTime >= 0.03 * 90.0 && currentStoppingTime < 0.06 * 120.0 -> {
                 // Stopping percentage (Between 2.7 and 7.2 minutes) is close to being valid but can be increased to pass

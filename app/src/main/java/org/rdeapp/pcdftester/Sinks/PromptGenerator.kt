@@ -37,7 +37,7 @@ class PromptGenerator (
      * @param totalDistance The total distance travelled so far.
      */
     private fun analyseTrajectory(totalDistance: Double) {
-        if (totalDistance >= 1/3 * expectedDistance && trajectoryAnalyser.getTotalTime() > 15) {
+        if ((totalDistance >= 1/4 * expectedDistance || sufficientDrivingMode != null) && trajectoryAnalyser.getTotalTime() > 15) {
             // set the desired driving mode accrued to the sufficient driving modes so far
             desiredDrivingMode = trajectoryAnalyser.setDesiredDrivingMode()
 
@@ -67,10 +67,10 @@ class PromptGenerator (
             // in motorway driving mode, check if the high speed or very high speed constraints
             // are violated. If not, set to a driving mode prompt type.
             DrivingMode.MOTORWAY -> {
-                if (highSpeed != null && highSpeed != 0.0 && promptType != PromptType.HIGHSPEEDPERCENTAGE) {
-                    promptType = PromptType.HIGHSPEEDPERCENTAGE
-                } else if (veryHighSpeed != null) {
+                if (highSpeed != null && highSpeed != 0.0 && promptType != PromptType.VERYHIGHSPEEDPERCENTAGE) {
                     promptType = PromptType.VERYHIGHSPEEDPERCENTAGE
+                } else if (veryHighSpeed != null) {
+                    promptType = PromptType.HIGHSPEEDPERCENTAGE
                 } else {
                     setModePromptType(totalDistance)
                 }
@@ -79,10 +79,10 @@ class PromptGenerator (
             // in urban driving mode, check if the average urban speed or stopping time constraints
             // are violated. If not, set to a driving mode prompt type.
             DrivingMode.URBAN -> {
-                if (averageUrbanSpeed != null && averageUrbanSpeed != 0.0 && promptType != PromptType.STOPPINGPERCENTAGE) {
-                    promptType = PromptType.AVERAGEURBANSPEED
-                } else if (stoppingTime != null && stoppingTime != -0.06) { // TODO change this to a better value
+                if (stoppingTime != null && stoppingTime != -0.06  && promptType != PromptType.AVERAGEURBANSPEED) {
                     promptType = PromptType.STOPPINGPERCENTAGE
+                } else if (averageUrbanSpeed != null && averageUrbanSpeed != 0.0) {
+                    promptType = PromptType.AVERAGEURBANSPEED
                 } else {
                     setModePromptType(totalDistance)
                 }
@@ -173,7 +173,7 @@ class PromptGenerator (
      * (Less than 1/3 of the expected distance is travelled)
      */
     private fun setNonePrompt() {
-        promptText = "Analysis will be available after 1/3 of the test is completed."
+        promptText = "Analysis will be available after a substantial amount of the test is completed."
         analysisText = ""
         promptColour = Color.BLACK
         analysisColour = Color.BLACK
@@ -260,9 +260,13 @@ class PromptGenerator (
             promptText = "You are stopping too little. Try to stop more."
             analysisText = "You need to stop for at least ${stoppingPercentageRounded * 100}% more of the urban time."
             promptColour = Color.RED
-        } else{
+        } else if ( stoppingPercentageRounded == 0.0){
+            promptText = "You are stopping too little. Try to stop more."
+            analysisText = "Your stopping percentage is very low and 30 minutes of the test has passed."
+            promptColour = Color.RED
+        } else {
             promptText = "You are close to exceeding the stopping percentage. Try to stop less."
-            analysisText = "You are stopping ${-(stoppingPercentageRounded) * 100}% less than the upper bound."
+            analysisText = "You are stopping ${-(stoppingPercentageRounded) * 100}% more than the upper bound."
             promptColour = Color.GREEN
         }
     }
