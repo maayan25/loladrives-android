@@ -73,9 +73,9 @@ class PromptGenerator (
             // are violated. If not, set to a driving mode prompt type.
             DrivingMode.MOTORWAY -> {
                 if (highSpeed != null && highSpeed != 0.0 && promptType != PromptType.VERYHIGHSPEEDPERCENTAGE) {
-                    promptType = PromptType.VERYHIGHSPEEDPERCENTAGE
-                } else if (veryHighSpeed != null) {
                     promptType = PromptType.HIGHSPEEDPERCENTAGE
+                } else if (veryHighSpeed != null) {
+                    promptType = PromptType.VERYHIGHSPEEDPERCENTAGE
                 } else {
                     setModePromptType(totalDistance)
                 }
