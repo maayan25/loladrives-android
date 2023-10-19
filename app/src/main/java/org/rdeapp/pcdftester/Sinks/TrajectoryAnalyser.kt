@@ -40,7 +40,6 @@ class TrajectoryAnalyser(
      * @param averageUrbanSpeed The current average speed of the vehicle in the urban driving mode.
      */
     fun updateProgress(
-        totalDistance: Double,
         urbanDistance: Double,
         ruralDistance: Double,
         motorwayDistance: Double,
@@ -51,6 +50,9 @@ class TrajectoryAnalyser(
         this.totalTime = totalTime
         this.currentSpeed = currentSpeed
         this.averageUrbanSpeed = averageUrbanSpeed
+
+        // total distance travelled so far
+        val totalDistance = urbanDistance + ruralDistance + motorwayDistance
 
         // update the expected distance if the total distance travelled so far is greater than the expected distance
         expectedDistance = maxOf(expectedDistance, totalDistance / 1000.0)

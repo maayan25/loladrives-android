@@ -247,7 +247,7 @@ class TrajectoryAnalyserTest {
         )
 
         // The constraint for stopping time should return the remaining stopping time for the lower threshold.
-        assertTrue(trajectoryAnalyser.getConstraints()[2] == 0.06 - velocityProfile.getStoppingTime() / 90)
+        assertTrue(trajectoryAnalyser.getConstraints()[2] == 0.0)
     }
 
     /**

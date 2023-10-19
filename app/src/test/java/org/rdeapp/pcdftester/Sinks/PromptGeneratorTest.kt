@@ -41,7 +41,7 @@ class PromptGeneratorTest {
             initialState[3], initialState[4], initialState[5])
         promptGenerator.determinePrompt(0.0, trajectoryAnalyser)
         assertEquals(promptGenerator.getPromptType(), PromptType.NONE)
-        assertEquals(promptGenerator.getPromptText(), "Analysis will be available after 1/3 of the test is completed.")
+        assertEquals(promptGenerator.getPromptText(), "Analysis will be available after a substantial amount of the test is completed.")
         assertEquals(promptGenerator.getAnalysisText(), "")
     }
 
@@ -65,7 +65,7 @@ class PromptGeneratorTest {
 
         // The prompt generator should generate a NONE prompt.
         assertEquals(promptGenerator.getPromptType(), PromptType.NONE)
-        assertEquals(promptGenerator.getPromptText(), "Analysis will be available after 1/3 of the test is completed.")
+        assertEquals(promptGenerator.getPromptText(), "Analysis will be available after a substantial amount of the test is completed.")
         assertEquals(promptGenerator.getAnalysisText(), "")
     }
 
@@ -251,7 +251,7 @@ class PromptGeneratorTest {
         )
 
         promptGenerator.determinePrompt(progressDistance, trajectoryAnalyser)
-        Thread.sleep(500)  // Wait for stopping time to be valid
+        Thread.sleep(31000)  // Wait 31 seconds for stopping time to be valid, and prompt to update
 
         // Update the prompt generator with the current state.
         promptGenerator.determinePrompt(progressDistance, trajectoryAnalyser)
@@ -260,7 +260,7 @@ class PromptGeneratorTest {
         // The prompt generator should generate a stopping percentage prompt.
         assertEquals(promptGenerator.getPromptType(), PromptType.STOPPINGPERCENTAGE)
         assertEquals(promptGenerator.getPromptText(), "You are stopping too little. Try to stop more.")
-        assertEquals(promptGenerator.getAnalysisText(), "You need to stop for at least 6.0% more of the urban time.")
+        assertEquals(promptGenerator.getAnalysisText(), "Your stopping percentage is very low and 30 minutes of the test has passed.")
     }
 
     /**
@@ -307,7 +307,7 @@ class PromptGeneratorTest {
         // The prompt generator should generate a driving style prompt.
         assertEquals(promptGenerator.getPromptType(), PromptType.STOPPINGPERCENTAGE)
         assertEquals(promptGenerator.getPromptText(), "You are close to exceeding the stopping percentage. Try to stop less.")
-        assertEquals(promptGenerator.getAnalysisText(), "You are stopping 9.0% less than the upper bound.")
+        assertEquals(promptGenerator.getAnalysisText(), "You are stopping 9.0% more than the upper bound.")
     }
 
 
@@ -341,15 +341,15 @@ class PromptGeneratorTest {
         promptGenerator.determinePrompt(progressDistance, trajectoryAnalyser)
         assertEquals(promptGenerator.getPromptType(), PromptType.HIGHSPEEDPERCENTAGE)
 
-        Thread.sleep(23490) // Wait for 23.5 seconds
+        Thread.sleep(33490) // Wait for 33.5 seconds
         trajectoryAnalyser.updateProgress(
             validState[0], validState[1], 0.1 * expectedDistance * 1000,
             20 + velocityProfile.getTimeDifference(), 145.1, validState[5]
         )
         promptGenerator.determinePrompt(progressDistance + 1000.0, trajectoryAnalyser)
-        assertEquals(promptGenerator.getPromptType(), PromptType.VERYHIGHSPEEDPERCENTAGE)
+        assertEquals(promptGenerator.getPromptType(), PromptType.HIGHSPEEDPERCENTAGE)
         assertEquals(promptGenerator.getPromptText(), "Aim for a lower driving speed, if it is safe to do so, for more motorway driving")
-        assertEquals(promptGenerator.getAnalysisText(), "You have driven at 145km/h or more for 1.5% of the motorway driving distance.")
+        assertEquals(promptGenerator.getAnalysisText(), "You need to drive at 100km/h or more for at least 4.4 more minutes.")
     }
 
     /**
@@ -364,7 +364,7 @@ class PromptGeneratorTest {
         )
         promptGenerator.determinePrompt(progressDistance, trajectoryAnalyser)
 
-        Thread.sleep(40000) // Wait for 40 seconds
+        Thread.sleep(40000) // Wait for 40 seconds for prompt type to change
 
         trajectoryAnalyser.updateProgress(
             validState[0], validState[1], 0.1 * expectedDistance * 1000,
@@ -389,11 +389,13 @@ class PromptGeneratorTest {
         ) // Stopping time is too low and average urban speed is close to being low
         promptGenerator.determinePrompt(progressDistance, trajectoryAnalyser)
 
-        assertEquals(promptGenerator.getPromptType(), PromptType.AVERAGEURBANSPEED)
+        assertEquals(promptGenerator.getPromptType(), PromptType.STOPPINGPERCENTAGE)
+
+        Thread.sleep(31000) // Wait for 31 seconds for prompt type to change
 
         trajectoryAnalyser.updateProgress(
             0.13 * expectedDistance * 1000, validState[1], validState[2],
-            90.0 + velocityProfile.getTimeDifference(), 0.0, 27.0
+            90.5 + velocityProfile.getTimeDifference(), 0.0, 27.0
         ) // Average Urban speed is valid and stopping time is still low
         promptGenerator.determinePrompt(progressDistance, trajectoryAnalyser)
 

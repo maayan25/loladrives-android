@@ -1,6 +1,7 @@
 package org.rdeapp.pcdftester.Sinks
 
 import android.graphics.Color
+import java.util.Calendar
 
 /**
  * A class to generate prompts based on the trajectory driven so far.
@@ -24,6 +25,7 @@ class PromptGenerator (
     private var promptColour: Int = Color.BLACK
     private var analysisColour: Int = Color.BLACK
     private var promptType: PromptType? = PromptType.NONE
+    private var lastUpdated: Long = 0
 
     // Array to store the current state of the RDE test constraints
     private var constraints: Array<Double?> = arrayOf(null)
@@ -47,8 +49,11 @@ class PromptGenerator (
             // get the constraints on the current driving style
             constraints = trajectoryAnalyser.getConstraints()
 
-            // set the prompt type according to the constraints
-            setPromptType(constraints, totalDistance)
+            // set the prompt type according to the constraints, if at least 30 seconds have passed
+            if (getTimeDifference() > 30) {
+                setPromptType(constraints, totalDistance)
+                setPromptUpdated()
+            }
         }
     }
 
@@ -67,7 +72,7 @@ class PromptGenerator (
             // in motorway driving mode, check if the high speed or very high speed constraints
             // are violated. If not, set to a driving mode prompt type.
             DrivingMode.MOTORWAY -> {
-                if (highSpeed != null && highSpeed != 0.0 && promptType != PromptType.VERYHIGHSPEEDPERCENTAGE) {
+                if (veryHighSpeed != null && veryHighSpeed != 0.0 && promptType != PromptType.HIGHSPEEDPERCENTAGE) {
                     promptType = PromptType.VERYHIGHSPEEDPERCENTAGE
                 } else if (veryHighSpeed != null) {
                     promptType = PromptType.HIGHSPEEDPERCENTAGE
@@ -94,6 +99,22 @@ class PromptGenerator (
             }
         }
     }
+
+    /**
+     * Set the timestamp of the last update to the prompt type.
+     * This is used to determine if the prompt type has changed recently.
+     */
+    private fun setPromptUpdated() {
+        lastUpdated = Calendar.getInstance().timeInMillis
+    }
+
+    /**
+     * @return the time passed since the last update to the prompt type.
+     */
+    private fun getTimeDifference(): Double {
+        return (Calendar.getInstance().timeInMillis - lastUpdated) / 1000.0
+    }
+
 
     /**
      * Set the prompt type if no constraints are violated.
