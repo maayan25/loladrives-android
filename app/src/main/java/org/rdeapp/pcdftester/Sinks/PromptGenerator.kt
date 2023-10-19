@@ -49,8 +49,8 @@ class PromptGenerator (
             // get the constraints on the current driving style
             constraints = trajectoryAnalyser.getConstraints()
 
-            // set the prompt type according to the constraints, if at least 1 minute has passed
-            if (getTimeDifference() > 60) {
+            // set the prompt type according to the constraints, if at least 30 seconds have passed
+            if (getTimeDifference() > 30) {
                 setPromptType(constraints, totalDistance)
                 setPromptUpdated()
             }
@@ -72,10 +72,10 @@ class PromptGenerator (
             // in motorway driving mode, check if the high speed or very high speed constraints
             // are violated. If not, set to a driving mode prompt type.
             DrivingMode.MOTORWAY -> {
-                if (highSpeed != null && highSpeed != 0.0 && promptType != PromptType.VERYHIGHSPEEDPERCENTAGE) {
-                    promptType = PromptType.HIGHSPEEDPERCENTAGE
-                } else if (veryHighSpeed != null) {
+                if (veryHighSpeed != null && veryHighSpeed != 0.0 && promptType != PromptType.HIGHSPEEDPERCENTAGE) {
                     promptType = PromptType.VERYHIGHSPEEDPERCENTAGE
+                } else if (veryHighSpeed != null) {
+                    promptType = PromptType.HIGHSPEEDPERCENTAGE
                 } else {
                     setModePromptType(totalDistance)
                 }
