@@ -52,10 +52,10 @@ class TrajectoryAnalyser(
         this.averageUrbanSpeed = averageUrbanSpeed
 
         // total distance travelled so far
-        val totalDistance = urbanDistance + ruralDistance + motorwayDistance
+        val totalDistance = (urbanDistance + ruralDistance + motorwayDistance) / 1000.0
 
         // update the expected distance if the total distance travelled so far is greater than the expected distance
-        expectedDistance = maxOf(expectedDistance, totalDistance / 1000.0)
+        expectedDistance = maxOf(expectedDistance, totalDistance)
 
         // update the velocity profile according to the current speed
         velocityProfile.updateVelocityProfile(currentSpeed)
@@ -249,11 +249,11 @@ class TrajectoryAnalyser(
                 // Stopping percentage is very low and some of the test time has passed
                 return  0.0
             }
-            currentStoppingTime >= 0.03 * 90.0 && currentStoppingTime < 0.06 * 120.0 -> {
+            currentStoppingTime >= 0.03 * 90.0 && currentStoppingTime < 0.06 * 90.0 -> {
                 // Stopping percentage (Between 2.7 and 7.2 minutes) is close to being valid but can be increased to pass
                 return  0.06 - (currentStoppingTime / 90.0)
             }
-            currentStoppingTime > 0.25 * 90 && currentStoppingTime < 0.3 * 120 -> {
+            currentStoppingTime > 0.25 * 120 && currentStoppingTime < 0.3 * 120 -> {
                 // Stopping percentage (between 22.5 and 36 minutes) is close to being invalid but can be decreased to pass
                 return (currentStoppingTime / 120) - 0.3
             }

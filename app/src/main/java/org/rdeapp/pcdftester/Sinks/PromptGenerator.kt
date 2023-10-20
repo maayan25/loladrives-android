@@ -18,6 +18,7 @@ class PromptGenerator (
     private var drivingStyleText: String = ""
     private var desiredDrivingMode: DrivingMode = DrivingMode.URBAN
     private var sufficientDrivingMode: DrivingMode? = null
+    private var setAnaylsis: Boolean = false
 
     // Variables to store the new prompt
     private var promptText: String = ""
@@ -32,14 +33,15 @@ class PromptGenerator (
 
     /**
      * Analyse the trajectory driven so far by using functions from the TrajectoryAnalyser class. If
-     * the distance travelled is less than 1/3 of the expected distance, do not analyse.
+     * the distance travelled is less than 1/4 of the expected distance or if none of the sufficiency
+     * of the driving modes is met or if total time of test is less than 30 minutes, do not analyse.
      * Otherwise, set the desired driving mode, the required speed change, and the prompt type
      * according to the constraints on the driving style.
      *
      * @param totalDistance The total distance travelled so far.
      */
     private fun analyseTrajectory(totalDistance: Double) {
-        if ((totalDistance >= 1/4 * expectedDistance || sufficientDrivingMode != null) && trajectoryAnalyser.getTotalTime() > 15) {
+        if (setAnaylsis) {
             // set the desired driving mode accrued to the sufficient driving modes so far
             desiredDrivingMode = trajectoryAnalyser.setDesiredDrivingMode()
 
@@ -54,9 +56,16 @@ class PromptGenerator (
                 setPromptType(constraints, totalDistance)
                 setPromptUpdated()
             }
+        } else {
+            checkToSetAnalysis(totalDistance)
         }
     }
 
+    private fun checkToSetAnalysis(totalDistance: Double){
+        if (totalDistance >= 1/6 * expectedDistance || sufficientDrivingMode != null || trajectoryAnalyser.getTotalTime() > 5){
+            setAnaylsis = true
+        }
+    }
     /**
      * Set the prompt type according to the current driving mode and the test constraints.
      * @param constraints The constraints on the driving style.
@@ -74,7 +83,7 @@ class PromptGenerator (
             DrivingMode.MOTORWAY -> {
                 if (veryHighSpeed != null && veryHighSpeed != 0.0 && promptType != PromptType.HIGHSPEEDPERCENTAGE) {
                     promptType = PromptType.VERYHIGHSPEEDPERCENTAGE
-                } else if (veryHighSpeed != null) {
+                } else if (highSpeed != null) {
                     promptType = PromptType.HIGHSPEEDPERCENTAGE
                 } else {
                     setModePromptType(totalDistance)
@@ -131,7 +140,7 @@ class PromptGenerator (
             if (sufficientDrivingMode != null) {
                 PromptType.SUFFICIENCY // Some driving style has just become sufficient
             } else {
-                PromptType.NONE // No prompt needed right now
+                promptType // No prompt needed right now
             }
         } else {
             // More than 1/3 of the expected distance is travelled, check the driving style.
@@ -149,7 +158,7 @@ class PromptGenerator (
     fun determinePrompt(totalDistance: Double, trajectoryAnalyser: TrajectoryAnalyser) {
         this.trajectoryAnalyser = trajectoryAnalyser
         // Analyse the trajectory driven so far
-        analyseTrajectory(totalDistance / 1000) // convert to kilometres
+        analyseTrajectory(totalDistance)
 
         // Set the prompt and analysis according to the prompt type
         when (promptType) {
@@ -242,8 +251,8 @@ class PromptGenerator (
      */
     private fun setAverageUrbanSpeedPrompt(averageUrbanSpeed: Double, changeSpeed: Double) {
         // Round values to 2 decimal places
-        val averageUrbanSpeedRounded = String.format("%.2f", averageUrbanSpeed).toDouble()
-        val changeSpeedRounded = String.format("%.2f", changeSpeed).toDouble()
+        val averageUrbanSpeedRounded: Double = String.format("%.2f", averageUrbanSpeed).toDouble()
+        val changeSpeedRounded: Double = String.format("%.2f", changeSpeed).toDouble()
 
         when {
             averageUrbanSpeedRounded > 35 && averageUrbanSpeedRounded < 40 -> {

@@ -72,7 +72,7 @@ class RDEUIUpdater(
                 )
 
                 // Update the prompt ProgressBars (total[0])
-                fragment.promptHandler.handlePrompt(outputs[0])
+                fragment.promptHandler.handlePrompt(outputs[0] / 1000)
 
                 // Update the Dynamics-Markers (grey balls)
                 handleDynamics(
