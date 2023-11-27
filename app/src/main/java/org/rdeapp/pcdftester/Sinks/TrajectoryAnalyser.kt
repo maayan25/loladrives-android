@@ -205,9 +205,7 @@ class TrajectoryAnalyser(
      */
     private fun canHighSpeedPass(): Double? {
         val highSpeedDuration = velocityProfile.getHighSpeed() // in minutes
-        return if (totalTime < 15) {
-            0.0 // Don't check for high speed in the first 15 minutes of the test
-        } else if (highSpeedDuration > 5) {
+        return if (highSpeedDuration > 5) {
             0.0
         } else {
             if (totalTime + (5 - highSpeedDuration) <= 120) {

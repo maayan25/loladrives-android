@@ -39,7 +39,7 @@ class PromptGenerator (
      * @param totalDistance The total distance travelled so far.
      */
     private fun analyseTrajectory(totalDistance: Double) {
-        if ((totalDistance >= 1/4 * expectedDistance || sufficientDrivingMode != null) && trajectoryAnalyser.getTotalTime() > 15) {
+        if ( sufficientDrivingMode != null || trajectoryAnalyser.getTotalTime() > 10) {
             // set the desired driving mode accrued to the sufficient driving modes so far
             desiredDrivingMode = trajectoryAnalyser.setDesiredDrivingMode()
 
@@ -54,6 +54,8 @@ class PromptGenerator (
                 setPromptType(constraints, totalDistance)
                 setPromptUpdated()
             }
+        } else {
+            setModePromptType(totalDistance)
         }
     }
 
@@ -74,7 +76,7 @@ class PromptGenerator (
             DrivingMode.MOTORWAY -> {
                 if (veryHighSpeed != null && veryHighSpeed != 0.0 && promptType != PromptType.HIGHSPEEDPERCENTAGE) {
                     promptType = PromptType.VERYHIGHSPEEDPERCENTAGE
-                } else if (veryHighSpeed != null) {
+                } else if (highSpeed != null && highSpeed != 0.0) {
                     promptType = PromptType.HIGHSPEEDPERCENTAGE
                 } else {
                     setModePromptType(totalDistance)
@@ -125,13 +127,13 @@ class PromptGenerator (
      * @param totalDistance The total distance travelled so far.
      */
     private fun setModePromptType(totalDistance: Double) {
-        promptType = if (totalDistance < expectedDistance / 3) {
+        promptType = if (totalDistance < expectedDistance / 5) {
             // Less than 1/3 of the expected distance is travelled, check if any driving style has become sufficient.
             sufficientDrivingMode = trajectoryAnalyser.checkSufficient()
             if (sufficientDrivingMode != null) {
                 PromptType.SUFFICIENCY // Some driving style has just become sufficient
             } else {
-                PromptType.NONE // No prompt needed right now
+                PromptType.NONE
             }
         } else {
             // More than 1/3 of the expected distance is travelled, check the driving style.
@@ -206,7 +208,7 @@ class PromptGenerator (
      */
     private fun setHighSpeedPrompt(highSpeedDuration: Double) {
         // Round the duration to 2 decimal
-        val highSpeedDurationRounded = String.format("%.1f", highSpeedDuration).toDouble()
+        val highSpeedDurationRounded = String.format("%.2f", highSpeedDuration).toDouble()
 
         analysisText =
             "You need to drive at 100km/h or more for at least $highSpeedDurationRounded more minutes."
@@ -246,12 +248,12 @@ class PromptGenerator (
         val changeSpeedRounded = String.format("%.2f", changeSpeed).toDouble()
 
         when {
-            averageUrbanSpeedRounded > 35 && averageUrbanSpeedRounded < 40 -> {
+            averageUrbanSpeedRounded > 38 && averageUrbanSpeedRounded < 40 -> {
                 promptText = "Your average urban speed, ${averageUrbanSpeedRounded}km/h, is close to being invalid."
                 analysisText = "You are ${changeSpeedRounded}km/h away from exceeding the upper limit."
                 promptColour = Color.RED
             }
-            averageUrbanSpeedRounded > 15 && averageUrbanSpeedRounded < 20 -> {
+            averageUrbanSpeedRounded > 15 && averageUrbanSpeedRounded < 18 -> {
                 promptText = "Your average urban speed, ${averageUrbanSpeedRounded}km/h, is close to being invalid."
                 analysisText = "You are ${-changeSpeedRounded}km/h above the lower limit."
                 promptColour = Color.GREEN
