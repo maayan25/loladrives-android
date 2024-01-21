@@ -37,6 +37,9 @@ class PromptHandler (
     private var currentPromptType: PromptType? = null
     private var newPromptType: PromptType? = null
 
+    private var lastSpeechTime: Long = 0
+    private var lastSpeechText: String = ""
+
     /**
      * Update the prompt for improving the driving style according to the received RTLola results.
      * @param totalDistance The total distance travelled so far.
@@ -62,6 +65,8 @@ class PromptHandler (
             // Only speak if the text has changed
             if (currentPromptText != promptGenerator.getPromptText()) {
                 speak()
+                lastSpeechTime = System.currentTimeMillis()
+                lastSpeechText = fragment.textViewRDEPrompt.text.toString()
             }
         }
 
@@ -95,8 +100,10 @@ class PromptHandler (
         newPromptType = promptGenerator.getPromptType()
 
         // Only speak if the text has changed and the prompt type has changed
-        if (currentPromptText != fragment.textViewRDEPrompt.text.toString() && currentPromptType != newPromptType){
+        if ((currentPromptText != fragment.textViewRDEPrompt.text.toString() && currentPromptType != newPromptType) || (getTimeDifference() > 120000 && currentPromptText != lastSpeechText )) {
             speak()
+            lastSpeechText = fragment.textViewRDEPrompt.text.toString()
+            lastSpeechTime = System.currentTimeMillis()
         }
 
         // Keep track of the last prompt type and text that was displayed
@@ -139,12 +146,23 @@ class PromptHandler (
      * If the SDK version is below LOLLIPOP, then a toast is shown that Text To Speech is not supported.
      */
     private fun speak() {
-        val text = fragment.textViewRDEPrompt.text.toString() // Get the text from the RDE prompt TextView
+        val text =
+            fragment.textViewRDEPrompt.text.toString() // Get the text from the RDE prompt TextView
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             tts!!.speak(text, TextToSpeech.QUEUE_FLUSH, null, "ID")
         } else {
-            Toast.makeText(fragment.requireActivity(), "This SDK version does not support Text To Speech.", Toast.LENGTH_LONG).show()
+            Toast.makeText(
+                fragment.requireActivity(),
+                "This SDK version does not support Text To Speech.",
+                Toast.LENGTH_LONG
+            ).show()
         }
     }
 
+    /**
+     * Calculate the time difference between the current time and the last time the prompt was spoken.
+     */
+    private fun getTimeDifference(): Long {
+        return System.currentTimeMillis() - lastSpeechTime
+    }
 }

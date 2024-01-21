@@ -193,11 +193,21 @@ class PromptGenerator (
 
     /**
      * Set the prompt text and analysis text for the case where no prompt is needed yet.
+     * Gives the driver information on the current speed and the percentage of the required
+     * driving completed so far.
      * (Less than 1/3 of the expected distance is travelled)
      */
     private fun setNonePrompt() {
-        promptText = "Analysis will be available after a substantial amount of the test is completed."
-        analysisText = ""
+        val urbanPercentage =
+            String.format("%.2f", trajectoryAnalyser.getUrbanPercentage()).toDouble()
+        val ruralPercentage =
+            String.format("%.2f", trajectoryAnalyser.getRuralPercentage()).toDouble()
+        val motorwayPercentage =
+            String.format("%.2f", trajectoryAnalyser.getMotorwayPercentage()).toDouble()
+
+        promptText = "You are driving at the speed of ${trajectoryAnalyser.getCurrentSpeed()}km/h."
+        analysisText =
+            "You have completed $urbanPercentage% of the required urban driving, $ruralPercentage% of the required rural driving, and $motorwayPercentage% of the required motorway driving."
         promptColour = Color.BLACK
         analysisColour = Color.BLACK
     }
@@ -259,8 +269,10 @@ class PromptGenerator (
                 promptColour = Color.GREEN
             }
             changeSpeedRounded < 0 -> {
-                promptText = "Your average urban speed, ${averageUrbanSpeedRounded}km/h, is too high."
-                analysisText = "You are ${-changeSpeedRounded}km/h more than the upper limit."
+                promptText =
+                    "Your average urban speed, ${averageUrbanSpeedRounded}km/h, is too high." // 35.6
+                analysisText =
+                    "You are ${-changeSpeedRounded}km/h more than the upper limit."  // 1.6
                 promptColour = Color.RED
             }
             changeSpeedRounded > 0 -> {
@@ -328,7 +340,10 @@ class PromptGenerator (
             promptText = "Aim for a lower driving speed, if it is safe to do so, $drivingStyleText"
             promptColour = Color.RED
         } else {
-            promptText = "Your driving style is good"
+            promptText =
+                "Your current speed, ${trajectoryAnalyser.getCurrentSpeed()}km/h, is an appropriate speed to complete the ${
+                    desiredDrivingMode.toString().toLowerCase()
+                } driving style."
             promptColour = Color.BLACK
         }
     }
@@ -351,16 +366,23 @@ class PromptGenerator (
     private fun setDrivingStyleAnalysis(duration: Double) {
         // Round value to 2 decimal places
         val durationRounded = String.format("%.2f", duration).toDouble()
+        analysisText = if (duration < 0.0) {
+            "Driven the required distance for the ${
+                desiredDrivingMode.toString().toLowerCase()
+            } driving style."
+        } else {
+            when (desiredDrivingMode) {
+                DrivingMode.URBAN -> {
+                    "Drive at an average speed of 30 km/h for at least $durationRounded minutes."
+                }
 
-        analysisText = when (desiredDrivingMode) {
-            DrivingMode.URBAN -> {
-                "Drive at an average speed of 30 km/h for at most $durationRounded minutes."
-            }
-            DrivingMode.RURAL -> {
-                "Drive at an average speed of 75 km/h for at most $durationRounded minutes"
-            }
-            DrivingMode.MOTORWAY -> {
-                "Drive at an average speed of 115 km/h for at most $durationRounded minutes"
+                DrivingMode.RURAL -> {
+                    "Drive at an average speed of 75 km/h for at least $durationRounded minutes"
+                }
+
+                DrivingMode.MOTORWAY -> {
+                    "Drive at an average speed of 115 km/h for at least $durationRounded minutes"
+                }
             }
         }
     }

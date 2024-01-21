@@ -243,10 +243,6 @@ class TrajectoryAnalyser(
                 isInvalid = PromptType.STOPPINGPERCENTAGE
                 return null
             }
-            totalTime > 30 && currentStoppingTime < 0.02 * totalTime -> {
-                // Stopping percentage is very low and some of the test time has passed
-                return  0.0
-            }
             currentStoppingTime >= 0.03 * 90.0 && currentStoppingTime < 0.06 * 120.0 -> {
                 // Stopping percentage (Between 2.7 and 7.2 minutes) is close to being valid but can be increased to pass
                 return  0.06 - (currentStoppingTime / 90.0)
@@ -386,19 +382,19 @@ class TrajectoryAnalyser(
         when (desiredDrivingMode) {
             DrivingMode.URBAN -> {
                 // Calculate the distance left to drive in urban mode with an average speed of 30 km/h
-                val urbanDistanceLeft = (0.44 - urbanProportion) * expectedDistance
+                val urbanDistanceLeft = (0.23 - urbanProportion) * expectedDistance
                 return urbanDistanceLeft * 2
             }
 
             DrivingMode.RURAL -> {
                 // Calculate the distance left to drive in rural mode with an average speed of 75 km/h
-                val ruralDistanceLeft = (0.43 - ruralProportion) * expectedDistance
+                val ruralDistanceLeft = (0.18 - ruralProportion) * expectedDistance
                 return ruralDistanceLeft * 0.8
             }
 
             DrivingMode.MOTORWAY -> {
                 // Calculate the distance left to drive in motorway mode with an average speed of 115 km/h
-                val motorwayDistanceLeft = (0.43 - motorwayProportion) * expectedDistance
+                val motorwayDistanceLeft = (0.18 - motorwayProportion) * expectedDistance
                 return motorwayDistanceLeft * 60 / 115
             }
         }
@@ -407,7 +403,35 @@ class TrajectoryAnalyser(
     /**
      * Return total time the test has been running for
      */
-    fun getTotalTime(): Double{
+    fun getTotalTime(): Double {
         return totalTime
+    }
+
+    /**
+     * Return the current speed of the vehicle
+     */
+    fun getCurrentSpeed(): Double {
+        return currentSpeed
+    }
+
+    /**
+     * Get percentage of urban driving mode completed so far in two decimal places
+     */
+    fun getUrbanPercentage(): Double {
+        return (urbanProportion / 0.23) * 100
+    }
+
+    /**
+     * Get percentage of rural driving mode completed so far
+     */
+    fun getRuralPercentage(): Double {
+        return (ruralProportion / 0.18) * 100
+    }
+
+    /**
+     * Get percentage of motorway driving mode completed so far
+     */
+    fun getMotorwayPercentage(): Double {
+        return (motorwayProportion / 0.18) * 100
     }
 }
