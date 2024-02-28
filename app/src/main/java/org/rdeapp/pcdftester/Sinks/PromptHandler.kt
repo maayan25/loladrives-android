@@ -89,7 +89,18 @@ class PromptHandler (
     }
 
     /**
-     * Generate the prompt according to the PromptType set from the analysis done on the trajectory
+     * Generate the prompt for an invalid RDE test.
+     * Using the outputs from the RTLola analysis, the prompt is generated and displayed to the user.
+     * Parameters:
+     * @param values The values from the RTLola analysis which are a list of 1s and 0s.
+     *
+     */
+    fun handleInvalidRDEPrompt(values: Array<Double>) {
+        //TODO: Implement this function
+    }
+
+    /**
+++     * Generate the prompt according to the PromptType set from the analysis done on the rtrajectory
      * so far.
      * Sets the TextViews for the RDE prompt and analysis depending on the PromptType.
      * Depending on the previous prompt type and the previous prompt text, the prompt is either spoken or not.

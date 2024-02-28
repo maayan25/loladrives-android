@@ -270,9 +270,9 @@ class PromptGenerator (
             }
             changeSpeedRounded < 0 -> {
                 promptText =
-                    "Your average urban speed, ${averageUrbanSpeedRounded}km/h, is too high." // 35.6
+                    "Your average urban speed, ${averageUrbanSpeedRounded}km/h, is too high."
                 analysisText =
-                    "You are ${-changeSpeedRounded}km/h more than the upper limit."  // 1.6
+                    "You are ${-changeSpeedRounded}km/h more than the upper limit."
                 promptColour = Color.RED
             }
             changeSpeedRounded > 0 -> {
@@ -294,10 +294,6 @@ class PromptGenerator (
         if (stoppingPercentageRounded > 0) {
             promptText = "You are stopping too little. Try to stop more."
             analysisText = "You need to stop for at least ${stoppingPercentageRounded * 100}% more of the urban time."
-            promptColour = Color.RED
-        } else if ( stoppingPercentageRounded == 0.0){
-            promptText = "You are stopping too little. Try to stop more."
-            analysisText = "Your stopping percentage is very low and 30 minutes of the test has passed."
             promptColour = Color.RED
         } else {
             promptText = "You are close to exceeding the stopping percentage. Try to stop less."

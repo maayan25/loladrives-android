@@ -289,11 +289,11 @@ class TrajectoryAnalyser(
                 isInvalid = PromptType.AVERAGEURBANSPEED
                 return null
             }
-            averageUrbanSpeed > 35.0 && averageUrbanSpeed < 40.0 || averageUrbanSpeed > 40.0 -> {
+            averageUrbanSpeed > 38.0 && averageUrbanSpeed < 40.0 || averageUrbanSpeed > 40.0 -> {
                 // average speed is high and close to being invalid or exceeded the limit but can be decreased to pass
                 return 40.0 - averageUrbanSpeed
             }
-            averageUrbanSpeed > 15.0 && averageUrbanSpeed < 20.0 || averageUrbanSpeed < 15.0 -> {
+            averageUrbanSpeed > 15.0 && averageUrbanSpeed < 18.0 || averageUrbanSpeed < 15.0 -> {
                 // average speed is low and close to being invalid or exceeded the limit but can be increased to pass
                 return 15.0 - averageUrbanSpeed
             }
