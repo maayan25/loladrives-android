@@ -32,6 +32,9 @@ class PromptHandler (
     // Used to determine the current prompt that should be displayed
     private var promptGenerator = PromptGenerator(expectedDistance)
 
+    // Values representing the different violations of the RDE test constraints
+    private var violations: Array<Double>? = null
+
     // Variables to store the current prompt
     private var currentPromptText: String = ""
     private var currentPromptType: PromptType? = null
@@ -44,12 +47,12 @@ class PromptHandler (
      * Update the prompt for improving the driving style according to the received RTLola results.
      * @param totalDistance The total distance travelled so far.
      */
-    suspend fun handlePrompt(totalDistance: Double) {
+    suspend fun handlePrompt(totalDistance: Double, isInvalid: Boolean, notRDEtest: Boolean) {
         // Check if the RDE test is still valid
         handleInvalidRDE()
 
         // Determine the next instructions according to analysis of the trajectory driven.
-        generatePrompt(totalDistance)
+        generatePrompt(totalDistance, isInvalid, notRDEtest)
     }
 
     /**
@@ -95,26 +98,32 @@ class PromptHandler (
      * @param values The values from the RTLola analysis which are a list of 1s and 0s.
      *
      */
-    fun handleInvalidRDEPrompt(values: Array<Double>) {
-        //TODO: Implement this function
+    fun setValuesForViolations(values: Array<Double>) {
+        violations = values
     }
 
     /**
-++     * Generate the prompt according to the PromptType set from the analysis done on the rtrajectory
+     * Generate the prompt according to the PromptType set from the analysis done on the trajectory
      * so far.
      * Sets the TextViews for the RDE prompt and analysis depending on the PromptType.
      * Depending on the previous prompt type and the previous prompt text, the prompt is either spoken or not.
      */
-    private fun generatePrompt(totalDistance: Double) {
+    private fun generatePrompt(totalDistance: Double, isValidTest: Boolean, notRDEtest: Boolean) {
         // Update the prompt and analysis texts and colours
         updatePrompt(totalDistance)
         newPromptType = promptGenerator.getPromptType()
 
-        // Only speak if the text has changed and the prompt type has changed
-        if ((currentPromptText != fragment.textViewRDEPrompt.text.toString() && currentPromptType != newPromptType) || (getTimeDifference() > 120000 && currentPromptText != lastSpeechText )) {
-            speak()
-            lastSpeechText = fragment.textViewRDEPrompt.text.toString()
-            lastSpeechTime = System.currentTimeMillis()
+        // If the RDE test is not invalid and , create prompt telling the user that the test is invalid
+        if (isValidTest && !notRDEtest) {
+            fragment.textViewRDEPrompt.text = "Stop the RDE test and as the test is valid"
+            fragment.textViewRDEPrompt.setTextColor(Color.RED)
+        } else {
+            // Only speak if the text has changed and the prompt type has changed
+            if ((currentPromptText != fragment.textViewRDEPrompt.text.toString() && currentPromptType != newPromptType) || (getTimeDifference() > 120000 && currentPromptText != lastSpeechText )) {
+                speak()
+                lastSpeechText = fragment.textViewRDEPrompt.text.toString()
+                lastSpeechTime = System.currentTimeMillis()
+            }
         }
 
         // Keep track of the last prompt type and text that was displayed

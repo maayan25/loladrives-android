@@ -71,9 +71,6 @@ class RDEUIUpdater(
                     outputs[7]
                 )
 
-                // Update the prompt ProgressBars (total[0])
-                fragment.promptHandler.handlePrompt(outputs[0])
-
                 // Generate prompt if RDE is invalid
                 val values = arrayOf(
                     outputs[19],  // Exceeded time limit
@@ -86,8 +83,14 @@ class RDEUIUpdater(
                     outputs[26],   // Invalid average urban speed
                 )
 
+                // Give the prompt handler the violations
+                fragment.promptHandler.setValuesForViolations(values)
+
+                // Update the prompt ProgressBars (total[0])
+                fragment.promptHandler.handlePrompt(outputs[0], outputs[18] == 1.0, outputs[27] == 1.0)
+
                 if (outputs[18] == 1.0) {
-                    fragment.promptHandler.handleInvalidRDEPrompt(values)
+                    fragment.promptHandler.setValuesForViolations(values)
                 }
 
                 // Update the Dynamics-Markers (grey balls)

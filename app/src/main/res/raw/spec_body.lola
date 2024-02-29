@@ -226,8 +226,8 @@ output not_rde_test: Bool := (
 // numerical helper streams for RDE-UI
 output is_valid_test_num: Float64 := if is_valid_test then 1.0 else 0.0
 output not_rde_test_num: Float64 := if not_rde_test then 1.0 else 0.0
-// TODO: Add different reasons for not being an RDE trip or not being valid
 
+// numerical helper streams for RDE-UI to get specific violations
 output duration: Float64 := if duration > 120.0 * 60.0 then 1.0 else 0.0       // Exceeded duration
 output v_max: Float64 := if v_max > 160.0 then 1.0 else 0.0                    // Exceeded max speed
 output is_ambient_exceeded_num: Float64 := if is_ambient_exceeded then 1.0 else 0.0                   // Exceeded ambient conditions
