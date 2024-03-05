@@ -27,6 +27,7 @@ import java.io.File
  * A simple [Fragment] subclass.
  */
 class RDEFragment : Fragment() {
+    lateinit var invalidRDEReason: String
     var distance = 83.0
     lateinit var trajectoryAnalyser: TrajectoryAnalyser
     lateinit var promptHandler: PromptHandler
