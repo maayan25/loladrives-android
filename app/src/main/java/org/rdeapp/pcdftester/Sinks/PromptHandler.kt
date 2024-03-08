@@ -41,7 +41,8 @@ class PromptHandler (
     private var newPromptType: PromptType? = null
 
     private var lastSpeechTime: Long = 0
-    private var lastSpeechText: String = ""
+    private var lastSpeechPromptText: String = ""
+    private var lastSpeechAnalysisText: String = ""
 
     /**
      * Update the prompt for improving the driving style according to the received RTLola results.
@@ -67,9 +68,9 @@ class PromptHandler (
 
             // Only speak if the text has changed
             if (currentPromptText != promptGenerator.getPromptText()) {
-                speak()
+                speak(fragment.textViewRDEPrompt.text.toString())
                 lastSpeechTime = System.currentTimeMillis()
-                lastSpeechText = fragment.textViewRDEPrompt.text.toString()
+                lastSpeechPromptText = fragment.textViewRDEPrompt.text.toString()
             }
         }
 
@@ -131,12 +132,15 @@ class PromptHandler (
         } else {
             // Store the reason for the invalid RDE test to use in the HistoryFragment later on
             fragment.invalidRDEReason = trajectoryAnalyser.checkInvalid().toString().toLowerCase()
-            // TODO: Add the reason for the invalid RDE test to the HistoryFragment ^^
 
             // Only speak if the text has changed and the prompt type has changed
-            if ((currentPromptText != fragment.textViewRDEPrompt.text.toString() && currentPromptType != newPromptType) || (getTimeDifference() > 120000 && currentPromptText != lastSpeechText )) {
-                speak()
-                lastSpeechText = fragment.textViewRDEPrompt.text.toString()
+            if ((currentPromptText != fragment.textViewRDEPrompt.text.toString() && currentPromptType != newPromptType) || (getTimeDifference() > 120000 && currentPromptText != lastSpeechPromptText )) {
+                speak(fragment.textViewRDEPrompt.text.toString())
+                lastSpeechPromptText = fragment.textViewRDEPrompt.text.toString()
+                lastSpeechTime = System.currentTimeMillis()
+            } else if (getTimeDifference() > 120000 && currentPromptText == lastSpeechPromptText && fragment.textViewAnalysis.text.toString() != lastSpeechAnalysisText) {
+                speak(fragment.textViewAnalysis.text.toString())
+                lastSpeechAnalysisText = fragment.textViewRDEPrompt.text.toString()
                 lastSpeechTime = System.currentTimeMillis()
             }
         }
@@ -180,9 +184,7 @@ class PromptHandler (
      * Speak the text in the RDE prompt TextView.
      * If the SDK version is below LOLLIPOP, then a toast is shown that Text To Speech is not supported.
      */
-    private fun speak() {
-        val text =
-            fragment.textViewRDEPrompt.text.toString() // Get the text from the RDE prompt TextView
+    private fun speak(text: String) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             tts!!.speak(text, TextToSpeech.QUEUE_FLUSH, null, "ID")
         } else {

@@ -3,6 +3,7 @@ package de.unisaarland.loladrives.Fragments.historyFragment
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.os.Bundle
+import android.text.Html
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -260,13 +261,30 @@ class HistoryDetailFragment(val file: File,  val rde: Boolean) :
     }
 
     // TODO: replace calculations through RTLola-Output-Streams (no double calculation needed)
+    fun generateInvalidRDEReason(isValidTest: Double, notRDEtest: Double): String {
+        // matching isValidTest(1.0...8.0) with appropriate violation prompt
+        when (isValidTest) {
+            0.0 -> return "Unknown reason for invalid RDE test"
+            1.0 -> return "Trip is valid"
+            2.0 -> return "Trip duration was too short or too long"
+            3.0 -> return "Exceeded the maximum speed"
+            4.0 -> return "Exceeded the ambient temperature?"
+            5.0 -> return "Exceeded emissions limits"
+            6.0 -> return "Invalid trip dynamics"
+            7.0 -> return "More than 5 long stops"
+            8.0 -> return "Invalid average urban speed"
+        }
+        return "Unknown reason for invalid RDE test"
+    }
     private fun initRDEHelpOnClick() {
         // Total Views
         totalDurationHelpImageButton.setOnClickListener {
             showHelp(R.raw.minihelp_duration_total, mapOf())
         }
         validRDEHelpImageButton.setOnClickListener {
-            showHelp(R.raw.minihelp_validity, mapOf())
+            val text = generateInvalidRDEReason(rdeResults?.get(17) ?: 0.0, rdeResults?.get(18) ?: 0.0)
+            val help = MainActivity.InfoDialog(text, mapOf())
+            help.show(requireActivity().supportFragmentManager, null)
         }
         noxHelpImageButton.setOnClickListener {
             showHelp(R.raw.minihelp_nox, mapOf())
