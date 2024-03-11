@@ -30,6 +30,10 @@ class PromptGenerator (
     // Array to store the current state of the RDE test constraints
     private var constraints: Array<Double?> = arrayOf(null)
 
+    // Last update to the driving mode
+    private var lastUpdateDrivingMode: Long = 0
+
+
     /**
      * Analyse the trajectory driven so far by using functions from the TrajectoryAnalyser class. If
      * the distance travelled is less than 1/3 of the expected distance, do not analyse.
@@ -40,8 +44,17 @@ class PromptGenerator (
      */
     private fun analyseTrajectory(totalDistance: Double) {
         if ( sufficientDrivingMode != null || trajectoryAnalyser.getTotalTime() > 10) {
+            val previousDrivingMode = desiredDrivingMode
             // set the desired driving mode accrued to the sufficient driving modes so far
             desiredDrivingMode = trajectoryAnalyser.setDesiredDrivingMode()
+
+            val currentDrivingMode = trajectoryAnalyser.currentDrivingMode()
+
+            if (desiredDrivingMode != previousDrivingMode && currentDrivingMode != desiredDrivingMode && getTimeDifferenceDrivingMode() > 6000){
+                desiredDrivingMode = currentDrivingMode
+            } else if (desiredDrivingMode != previousDrivingMode && currentDrivingMode != desiredDrivingMode) {
+                setDrivingModeUpdated()
+            }
 
             // get the speed change needed to improve the driving style
             speedChange = trajectoryAnalyser.computeSpeedChange()
@@ -111,10 +124,25 @@ class PromptGenerator (
     }
 
     /**
+     * Set the timestamp of the last update to the driving mode.
+     * This is used to determine if the driving mode has changed recently.
+     */
+    private fun setDrivingModeUpdated() {
+        lastUpdateDrivingMode = Calendar.getInstance().timeInMillis
+    }
+
+    /**
      * @return the time passed since the last update to the prompt type.
      */
     private fun getTimeDifference(): Double {
         return (Calendar.getInstance().timeInMillis - lastUpdated) / 1000.0
+    }
+
+    /**
+     * @return the time passed since the last update to the driving mode.
+     */
+    private fun getTimeDifferenceDrivingMode(): Double {
+        return (Calendar.getInstance().timeInMillis - lastUpdateDrivingMode) / 1000.0
     }
 
 
@@ -136,8 +164,12 @@ class PromptGenerator (
                 PromptType.NONE
             }
         } else {
-            // More than 1/3 of the expected distance is travelled, check the driving style.
-            PromptType.DRIVINGSTYLE
+            if (trajectoryAnalyser.getTotalTime() > 90.0){
+                PromptType.NONE
+            } else {
+                // More than 1/3 of the expected distance is travelled, check the driving style.
+                PromptType.DRIVINGSTYLE
+            }
         }
     }
 
@@ -188,6 +220,9 @@ class PromptGenerator (
                 setDrivingStylePrompt(drivingStyleText)
                 setVeryHighSpeedPrompt(constraints[1]!!)
             }
+            PromptType.INVALIDRDEREASON -> {
+                TODO("Add prompt handler here for invalid reason")
+            }
         }
     }
 
@@ -199,11 +234,11 @@ class PromptGenerator (
      */
     private fun setNonePrompt() {
         val urbanPercentage =
-            String.format("%.2f", trajectoryAnalyser.getUrbanPercentage()).toDouble()
+            String.format("%.2f", trajectoryAnalyser.getUrbanPercentage()).toInt()
         val ruralPercentage =
-            String.format("%.2f", trajectoryAnalyser.getRuralPercentage()).toDouble()
+            String.format("%.2f", trajectoryAnalyser.getRuralPercentage()).toInt()
         val motorwayPercentage =
-            String.format("%.2f", trajectoryAnalyser.getMotorwayPercentage()).toDouble()
+            String.format("%.2f", trajectoryAnalyser.getMotorwayPercentage()).toInt()
 
         promptText = "You are driving at the speed of ${trajectoryAnalyser.getCurrentSpeed()}km/h."
         analysisText =
@@ -361,26 +396,39 @@ class PromptGenerator (
      */
     private fun setDrivingStyleAnalysis(duration: Double) {
         // Round value to 2 decimal places
-        val durationRounded = String.format("%.2f", duration).toDouble()
-        analysisText = if (duration < 0.0) {
-            "Driven the required distance for the ${
-                desiredDrivingMode.toString().toLowerCase()
-            } driving style."
-        } else {
-            when (desiredDrivingMode) {
-                DrivingMode.URBAN -> {
+        val durationRounded = String.format("%.2f", duration).toInt()
+        analysisText = when (desiredDrivingMode) {
+            DrivingMode.URBAN -> {
+                if (duration < 0.0) {
+                    "Driven the required distance for the ${
+                        desiredDrivingMode.toString().toLowerCase()
+                    } driving style. Do not drive more than ${-durationRounded} at a average speed of 30 km/h"
+                } else {
                     "Drive at an average speed of 30 km/h for at least $durationRounded minutes."
                 }
+            }
 
-                DrivingMode.RURAL -> {
+            DrivingMode.RURAL -> {
+                if (duration < 0.0) {
+                    "Driven the required distance for the ${
+                        desiredDrivingMode.toString().toLowerCase()
+                    } driving style. Do not drive more than ${-durationRounded} at a average speed of 75 km/h"
+                } else {
                     "Drive at an average speed of 75 km/h for at least $durationRounded minutes"
                 }
+            }
 
-                DrivingMode.MOTORWAY -> {
+            DrivingMode.MOTORWAY -> {
+                if (duration < 0.0) {
+                    "Driven the required distance for the ${
+                        desiredDrivingMode.toString().toLowerCase()
+                    } driving style. Do not drive more than ${-durationRounded} at a average speed of 75 km/h"
+                } else {
                     "Drive at an average speed of 115 km/h for at least $durationRounded minutes"
                 }
             }
         }
+
     }
 
     /**

@@ -120,6 +120,12 @@ class TrajectoryAnalyser(
      */
     fun setDesiredDrivingMode(): DrivingMode {
         when {
+            urbanSufficient && ruralSufficient && motorwaySufficient -> {
+                desiredDrivingMode = currentDrivingMode()
+            }
+            !urbanSufficient && !ruralSufficient && !motorwaySufficient -> {
+                desiredDrivingMode = currentDrivingMode()
+            }
             urbanSufficient && !ruralSufficient && !motorwaySufficient -> {
                 desiredDrivingMode = chooseNextDrivingMode(DrivingMode.RURAL, DrivingMode.MOTORWAY)
             }
@@ -381,21 +387,36 @@ class TrajectoryAnalyser(
     fun computeDuration(): Double {
         when (desiredDrivingMode) {
             DrivingMode.URBAN -> {
-                // Calculate the distance left to drive in urban mode with an average speed of 30 km/h
-                val urbanDistanceLeft = (0.23 - urbanProportion) * expectedDistance
-                return urbanDistanceLeft * 2
+                if (urbanSufficient) {
+                    val maxDistanceMore = (0.44 - urbanProportion) * expectedDistance
+                    return -(maxDistanceMore * 2)
+                } else {
+                    // Calculate the distance left to drive in urban mode with an average speed of 30 km/h
+                    val urbanDistanceLeft = (0.23 - urbanProportion) * expectedDistance
+                    return urbanDistanceLeft * 2
+                }
             }
 
             DrivingMode.RURAL -> {
-                // Calculate the distance left to drive in rural mode with an average speed of 75 km/h
-                val ruralDistanceLeft = (0.18 - ruralProportion) * expectedDistance
-                return ruralDistanceLeft * 0.8
+                if (ruralSufficient) {
+                    val maxDistanceMore = (0.43 - urbanProportion) * expectedDistance
+                    return -(maxDistanceMore * 0.8)
+                } else {
+                    // Calculate the distance left to drive in rural mode with an average speed of 75 km/h
+                    val ruralDistanceLeft = (0.18 - ruralProportion) * expectedDistance
+                    return ruralDistanceLeft * 0.8
+                }
             }
 
             DrivingMode.MOTORWAY -> {
-                // Calculate the distance left to drive in motorway mode with an average speed of 115 km/h
-                val motorwayDistanceLeft = (0.18 - motorwayProportion) * expectedDistance
-                return motorwayDistanceLeft * 60 / 115
+                if (motorwaySufficient) {
+                    val maxDistanceMore = (0.43 - urbanProportion) * expectedDistance
+                    return -(maxDistanceMore * 0.5)
+                } else {
+                    // Calculate the distance left to drive in motorway mode with an average speed of 120 km/h
+                    val motorwayDistanceLeft = (0.18 - motorwayProportion) * expectedDistance
+                    return motorwayDistanceLeft * 0.5
+                }
             }
         }
     }
