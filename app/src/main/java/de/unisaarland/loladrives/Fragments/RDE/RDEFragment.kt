@@ -11,15 +11,15 @@ import androidx.fragment.app.FragmentTransaction
 import de.unisaarland.loladrives.MainActivity
 import de.unisaarland.loladrives.OBDCommunication.*
 import de.unisaarland.loladrives.R
+import de.unisaarland.loladrives.Sinks.RDEUIUpdater
+import de.unisaarland.loladrives.Sinks.RDEValidator
 import de.unisaarland.loladrives.profiles.RDECommand
 import kotlinx.android.synthetic.main.app_bar_main.*
 import kotlinx.android.synthetic.main.fragment_r_d_e.*
 import kotlinx.coroutines.*
 import org.rdeapp.pcdftester.Sinks.PromptHandler
-import org.rdeapp.pcdftester.Sinks.RDEUIUpdater
-import org.rdeapp.pcdftester.Sinks.RDEValidator
 import org.rdeapp.pcdftester.Sinks.TrajectoryAnalyser
-import org.rdeapp.pcdftester.Sinks.VERBOSITY_MODE
+//import org.rdeapp.pcdftester.Sinks.VERBOSITY_MODE removed in new version
 import org.rdeapp.pcdftester.Sinks.VelocityProfile
 import java.io.File
 
@@ -36,7 +36,11 @@ class RDEFragment : Fragment() {
     private var uiUpdaterJob: Job? = null
     private lateinit var activity: MainActivity
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
         // Inflate the layout for this fragment
         return inflater.inflate(R.layout.fragment_r_d_e, container, false)
     }
@@ -98,7 +102,7 @@ class RDEFragment : Fragment() {
                 GlobalScope.launch(Dispatchers.Main) {
                     // Perform supported Pids check
                     val rdeReady = try {
-                        rdeValidator.performSupportedPidsCheck()
+                        rdeValidator.performSupportedPidsCheck().first
                     } catch (e: Exception) {
                         println("OBD Error: $e")
                         OBD_COMMUNICATION_ERROR
@@ -110,8 +114,18 @@ class RDEFragment : Fragment() {
                             rdeValidator.initSpec()
                             // Load RDE Profile with supported Pids
                             val commands = mutableListOf<RDECommand>()
-                            rdeValidator.rdeProfile.forEach { i -> commands.add(RDECommand.toRDECommand(i)) }
-                            rdeValidator.extendedLoggingProfile.forEach { i -> commands.add(RDECommand.toRDECommand(i)) }
+                            rdeValidator.rdeProfile.forEach { i ->
+                                commands.add(
+                                    RDECommand.toRDECommand(
+                                        i
+                                    )
+                                )
+                            }
+                            rdeValidator.extendedLoggingProfile.forEach { i ->
+                                commands.add(
+                                    RDECommand.toRDECommand(i)
+                                )
+                            }
                             activity.selectedProfile = Pair(
                                 "rde_profile",
                                 commands.toTypedArray()
@@ -129,7 +143,7 @@ class RDEFragment : Fragment() {
                             // Show stop button
                             stopRDEButton.visibility = View.VISIBLE
                         }
-                        INSUFFICIENT_SENSORS, UNSUPPORTED_PROTOCOL -> {
+                        INSUFFICIENT_SENSORS, UNSUPPORTED_PROTOCOL, NO_FUELTYPE -> {
                             MainActivity.InfoDialog("unsupported_car.html", null).show(
                                 activity.supportFragmentManager,
                                 null

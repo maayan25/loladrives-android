@@ -77,3 +77,6 @@ Distributed under the MIT License. See **LICENSE** for more information.
 - Sebastian Biewer - biewer [[at]] depend.uni-saarland.de
 
 Project Link: https://github.com/udsdepend/loladrives-android
+
+## Initial environment setup
+The project was developed using `Android 11`, Java `JDK 11`, and `Gradle 6.5`

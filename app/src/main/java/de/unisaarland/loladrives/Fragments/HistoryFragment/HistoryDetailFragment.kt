@@ -19,6 +19,8 @@ import com.github.mikephil.charting.interfaces.datasets.ILineDataSet
 import com.google.android.material.tabs.TabLayout
 import de.unisaarland.loladrives.MainActivity
 import de.unisaarland.loladrives.R
+import de.unisaarland.loladrives.Sinks.RDEUIUpdater
+import de.unisaarland.loladrives.Sinks.RDEValidator
 import de.unisaarland.pcdfanalyser.model.ParameterSupport
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.app_bar_main.*
@@ -26,25 +28,18 @@ import kotlinx.android.synthetic.main.fragment_history_detail.*
 import kotlinx.android.synthetic.main.histroy_event_item.view.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.flow.asFlow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import org.rdeapp.pcdftester.Sinks.RDEUIUpdater
-import org.rdeapp.pcdftester.Sinks.RDEValidator
 import pcdfEvent.EventType
 import pcdfEvent.PCDFEvent
-import pcdfEvent.events.obdEvents.OBDEvent
 import pcdfEvent.events.obdEvents.obdIntermediateEvents.singleComponentEvents.SpeedEvent
-import pcdfPattern.PCDFPattern
-import pcdfPattern.PatternParser
 import serialization.Serializer
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.collections.ArrayList
 
-class HistoryDetailFragment(val file: File,  val rde: Boolean) :
+class HistoryDetailFragment(val file: File, val rde: Boolean) :
     Fragment(), TabLayout.OnTabSelectedListener {
     private lateinit var activity: MainActivity
 
@@ -53,7 +48,11 @@ class HistoryDetailFragment(val file: File,  val rde: Boolean) :
     private var summaryTab: TabLayout.Tab? = null
     private var rdeAnalysisTab: TabLayout.Tab? = null
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
         activity = requireActivity() as MainActivity
         // Inflate the layout for this fragment
         return inflater.inflate(R.layout.fragment_history_detail, container, false)
@@ -103,10 +102,12 @@ class HistoryDetailFragment(val file: File,  val rde: Boolean) :
         val cacheManager = activity.analysisCacheManager
 
         // Set up VIN
-        summaryVINTextView.text = cacheManager.vinCache.cachedAnalysisResultForFile(file) ?: "No VIN found"
+        summaryVINTextView.text =
+            cacheManager.vinCache.cachedAnalysisResultForFile(file) ?: "No VIN found"
 
         //Set up supported/available PIDs
-        val paramSupp = cacheManager.supportedPIDsCache.cachedAnalysisResultForFile(file) ?: ParameterSupport()
+        val paramSupp =
+            cacheManager.supportedPIDsCache.cachedAnalysisResultForFile(file) ?: ParameterSupport()
         var available = 0
         var supported = 0
         for (record in paramSupp.parameterRecords) {
@@ -293,7 +294,8 @@ class HistoryDetailFragment(val file: File,  val rde: Boolean) :
         // Urban
         urbanDistanceHelpImageButton.setOnClickListener {
             val replace = when {
-                (rdeResults?.get(0) ?: 0.0) * 0.29 / 1000.0 < 16.0 && (rdeResults?.get(0) ?: 0.0) * 0.44 / 1000.0 < 16.0 -> {
+                (rdeResults?.get(0) ?: 0.0) * 0.29 / 1000.0 < 16.0 && (rdeResults?.get(0)
+                    ?: 0.0) * 0.44 / 1000.0 < 16.0 -> {
                     mapOf(
                         "between <b>PLACEHOLDER1</b> and <b>PLACEHOLDER2</b>" to "greater than <b>16km</b>"
                     )
@@ -301,13 +303,19 @@ class HistoryDetailFragment(val file: File,  val rde: Boolean) :
                 (rdeResults?.get(0) ?: 0.0) * 0.29 / 1000.0 < 16.0 -> {
                     mapOf(
                         "PLACEHOLDER1" to RDEUIUpdater.convertMeters(16000),
-                        "PLACEHOLDER2" to RDEUIUpdater.convertMeters(((rdeResults?.get(0) ?: 0.0) * 0.44).toLong())
+                        "PLACEHOLDER2" to RDEUIUpdater.convertMeters(
+                            ((rdeResults?.get(0) ?: 0.0) * 0.44).toLong()
+                        )
                     )
                 }
                 else -> {
                     mapOf(
-                        "PLACEHOLDER1" to RDEUIUpdater.convertMeters(((rdeResults?.get(0) ?: 0.0) * 0.29).toLong()),
-                        "PLACEHOLDER2" to RDEUIUpdater.convertMeters(((rdeResults?.get(0) ?: 0.0) * 0.44).toLong())
+                        "PLACEHOLDER1" to RDEUIUpdater.convertMeters(
+                            ((rdeResults?.get(0) ?: 0.0) * 0.29).toLong()
+                        ),
+                        "PLACEHOLDER2" to RDEUIUpdater.convertMeters(
+                            ((rdeResults?.get(0) ?: 0.0) * 0.44).toLong()
+                        )
                     )
                 }
             }
@@ -335,7 +343,8 @@ class HistoryDetailFragment(val file: File,  val rde: Boolean) :
         // Rural
         ruralDistanceHelpImageButton.setOnClickListener {
             val replace = when {
-                (rdeResults?.get(0) ?: 0.0) * 0.23 / 1000.0 < 16.0 && (rdeResults?.get(0) ?: 0.0) * 0.43 / 1000.0 < 16.0 -> {
+                (rdeResults?.get(0) ?: 0.0) * 0.23 / 1000.0 < 16.0 && (rdeResults?.get(0)
+                    ?: 0.0) * 0.43 / 1000.0 < 16.0 -> {
                     mapOf(
                         "between <b>PLACEHOLDER1</b> and <b>PLACEHOLDER2</b>" to "greater than <b>16km</b>"
                     )
@@ -343,13 +352,19 @@ class HistoryDetailFragment(val file: File,  val rde: Boolean) :
                 (rdeResults?.get(0) ?: 0.0) * 0.23 / 1000.0 < 16.0 -> {
                     mapOf(
                         "PLACEHOLDER1" to RDEUIUpdater.convertMeters(16000),
-                        "PLACEHOLDER2" to RDEUIUpdater.convertMeters(((rdeResults?.get(0) ?: 0.0) * 0.43).toLong())
+                        "PLACEHOLDER2" to RDEUIUpdater.convertMeters(
+                            ((rdeResults?.get(0) ?: 0.0) * 0.43).toLong()
+                        )
                     )
                 }
                 else -> {
                     mapOf(
-                        "PLACEHOLDER1" to RDEUIUpdater.convertMeters(((rdeResults?.get(0) ?: 0.0) * 0.23).toLong()),
-                        "PLACEHOLDER2" to RDEUIUpdater.convertMeters(((rdeResults?.get(0) ?: 0.0) * 0.43).toLong())
+                        "PLACEHOLDER1" to RDEUIUpdater.convertMeters(
+                            ((rdeResults?.get(0) ?: 0.0) * 0.23).toLong()
+                        ),
+                        "PLACEHOLDER2" to RDEUIUpdater.convertMeters(
+                            ((rdeResults?.get(0) ?: 0.0) * 0.43).toLong()
+                        )
                     )
                 }
             }
@@ -377,7 +392,8 @@ class HistoryDetailFragment(val file: File,  val rde: Boolean) :
         // Motorway
         motorwayDistanceHelpImageButton.setOnClickListener {
             val replace = when {
-                (rdeResults?.get(0) ?: 0.0) * 0.23 / 1000.0 < 16.0 && (rdeResults?.get(0) ?: 0.0) * 0.43 / 1000.0 < 16.0 -> {
+                (rdeResults?.get(0) ?: 0.0) * 0.23 / 1000.0 < 16.0 && (rdeResults?.get(0)
+                    ?: 0.0) * 0.43 / 1000.0 < 16.0 -> {
                     mapOf(
                         "between <b>PLACEHOLDER1</b> and <b>PLACEHOLDER2</b>" to "greater than <b>16km</b>"
                     )
@@ -385,13 +401,19 @@ class HistoryDetailFragment(val file: File,  val rde: Boolean) :
                 (rdeResults?.get(0) ?: 0.0) * 0.23 / 1000.0 < 16.0 -> {
                     mapOf(
                         "PLACEHOLDER1" to RDEUIUpdater.convertMeters(16000),
-                        "PLACEHOLDER2" to RDEUIUpdater.convertMeters(((rdeResults?.get(0) ?: 0.0) * 0.43).toLong())
+                        "PLACEHOLDER2" to RDEUIUpdater.convertMeters(
+                            ((rdeResults?.get(0) ?: 0.0) * 0.43).toLong()
+                        )
                     )
                 }
                 else -> {
                     mapOf(
-                        "PLACEHOLDER1" to RDEUIUpdater.convertMeters(((rdeResults?.get(0) ?: 0.0) * 0.23).toLong()),
-                        "PLACEHOLDER2" to RDEUIUpdater.convertMeters(((rdeResults?.get(0) ?: 0.0) * 0.43).toLong())
+                        "PLACEHOLDER1" to RDEUIUpdater.convertMeters(
+                            ((rdeResults?.get(0) ?: 0.0) * 0.23).toLong()
+                        ),
+                        "PLACEHOLDER2" to RDEUIUpdater.convertMeters(
+                            ((rdeResults?.get(0) ?: 0.0) * 0.43).toLong()
+                        )
                     )
                 }
             }
@@ -514,7 +536,8 @@ class HistoryDetailFragment(val file: File,  val rde: Boolean) :
                 rowView.dataTextView.text = event.toString()
             } catch (e: Exception) {
                 rowView.typeTextView.setTextColor(ContextCompat.getColor(context, R.color.redColor))
-                val str = "Could not parse the following event: \n ${serializer.generateFromPattern(event.getPattern())}"
+                val str =
+                    "Could not parse the following event: \n ${serializer.generateFromPattern(event.getPattern())}"
                 rowView.dataTextView.text = str
             }
             return rowView

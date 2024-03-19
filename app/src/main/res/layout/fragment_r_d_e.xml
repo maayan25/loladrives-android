@@ -860,6 +860,39 @@
             android:orientation="vertical"
             app:layout_constraintGuide_percent="0.67" />
 
+    <ImageView
+        android:id="@+id/imageViewDynamicsWarningUrban"
+        android:layout_width="14dp"
+        android:layout_height="14dp"
+        app:srcCompat="@drawable/red_triangle"
+        android:layout_marginStart="10dp"
+        android:layout_marginTop="-7dp"
+        app:layout_constraintLeft_toRightOf="@id/roundCornerProgressBarUrbanDynamics"
+        app:layout_constraintBottom_toBottomOf="@id/roundCornerProgressBarUrbanDynamics"
+        app:layout_constraintTop_toTopOf="@id/guideline30"/>
+
+    <ImageView
+        android:id="@+id/imageViewDynamicsWarningRural"
+        android:layout_width="14dp"
+        android:layout_height="14dp"
+        app:srcCompat="@drawable/red_triangle"
+        android:layout_marginStart="10dp"
+        android:layout_marginTop="-7dp"
+        app:layout_constraintLeft_toRightOf="@id/roundCornerProgressBarRuralDynamics"
+        app:layout_constraintBottom_toBottomOf="@id/roundCornerProgressBarRuralDynamics"
+        app:layout_constraintTop_toTopOf="@id/guideline32"/>
+
+    <ImageView
+        android:id="@+id/imageViewDynamicsWarningMotorway"
+        android:layout_width="14dp"
+        android:layout_height="14dp"
+        app:srcCompat="@drawable/red_triangle"
+        android:layout_marginStart="10dp"
+        android:layout_marginTop="-7dp"
+        app:layout_constraintLeft_toRightOf="@id/roundCornerProgressBarMotorwayDynamics"
+        app:layout_constraintBottom_toBottomOf="@id/roundCornerProgressBarMotorwayDynamics"
+        app:layout_constraintTop_toTopOf="@id/guideline33"/>
+
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </ScrollView>
