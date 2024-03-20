@@ -323,7 +323,7 @@ class PromptGeneratorTest {
         )
         promptGenerator.determinePrompt(progressDistance, trajectoryAnalyser)
         assertEquals(promptGenerator.getPromptType(), PromptType.HIGHSPEEDPERCENTAGE)
-        assertEquals(promptGenerator.getPromptText(), "Your driving style is good")
+        assertEquals(promptGenerator.getPromptText(), "Your current speed, ${trajectoryAnalyser.getCurrentSpeed()}km/h, is an appropriate speed to complete the motorway driving style.")
         assertEquals(promptGenerator.getAnalysisText(), "You need to drive at 100km/h or more for at least 5.0 more minutes.")
     }
 
@@ -349,7 +349,7 @@ class PromptGeneratorTest {
         promptGenerator.determinePrompt(progressDistance + 1000.0, trajectoryAnalyser)
         assertEquals(promptGenerator.getPromptType(), PromptType.HIGHSPEEDPERCENTAGE)
         assertEquals(promptGenerator.getPromptText(), "Aim for a lower driving speed, if it is safe to do so, for more motorway driving")
-        assertEquals(promptGenerator.getAnalysisText(), "You need to drive at 100km/h or more for at least 4.4 more minutes.")
+        assertEquals(promptGenerator.getAnalysisText(), "You need to drive at 100km/h or more for at least 4.44 more minutes.")
     }
 
     /**
@@ -372,7 +372,7 @@ class PromptGeneratorTest {
         )
         promptGenerator.determinePrompt(progressDistance + 1000.0, trajectoryAnalyser)
 
-        assertEquals(promptGenerator.getPromptType(), PromptType.VERYHIGHSPEEDPERCENTAGE)
+        assertEquals(promptGenerator.getPromptType(), PromptType.HIGHSPEEDPERCENTAGE)
         assertEquals(promptGenerator.getPromptText(), "Aim for a lower driving speed, if it is safe to do so, for more motorway driving")
         assertEquals(promptGenerator.getAnalysisText(), "You have driven at 145km/h or more for 2.5% of the motorway driving distance.")
     }

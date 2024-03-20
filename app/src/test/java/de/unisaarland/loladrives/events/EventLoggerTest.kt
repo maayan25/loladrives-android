@@ -1,5 +1,6 @@
-package org.rdeapp.pcdftester.Sinks
+package de.unisaarland.loladrives.events
 
+import de.unisaarland.loladrives.Sinks.EventLogger
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ReceiveChannel

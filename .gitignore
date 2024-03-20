@@ -11,4 +11,3 @@ apikey.properties
 app/build
 app/release
 app/libs
-app/src/test
