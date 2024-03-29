@@ -77,6 +77,13 @@ class MainActivity : AppCompatActivity() {
             sharedPref.edit().putBoolean(BACKGROUND_LOCATION_KEY, field).apply()
         }
 
+    var askedForPermissionBluetooth = false
+        set(value) {
+            field = value
+            val sharedPref = getPreferences(Context.MODE_PRIVATE)
+            sharedPref.edit().putBoolean(BLUETOOTH_PERMISSION_KEY, field).apply()
+        }
+
     private val showForegroundLocationUI: Boolean
         get() {
             return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -93,6 +100,16 @@ class MainActivity : AppCompatActivity() {
                 shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
             } else {
                 true
+            }
+        }
+
+    private val showBluetoothPermissionUI: Boolean
+        get() {
+            return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                shouldShowRequestPermissionRationale(Manifest.permission.BLUETOOTH_CONNECT) ||
+                        shouldShowRequestPermissionRationale(Manifest.permission.BLUETOOTH_SCAN)
+            } else {
+                false
             }
         }
 
@@ -340,7 +357,7 @@ class MainActivity : AppCompatActivity() {
         if (!checkPermissionsForeground()) {
             val dialog = if (!askedForPermissionForeground || showForegroundLocationUI) {
                 val foregroundStatement = "foreground_location_statement.html"
-                InfoDialog(foregroundStatement, null, true, "Yes", true)
+                InfoDialog(foregroundStatement, null, InfoDialog.PERMISSION_FOREGROUND_LOCATION, "Yes", true)
             } else {
                 val rationalStatement = "location_rational_statement.html"
                 InfoDialog(rationalStatement, null)
@@ -353,7 +370,7 @@ class MainActivity : AppCompatActivity() {
         if (!checkPermissionsBackground()) {
             val dialog = if (!askedForPermissionBackground || showBackgroundLocationUI) {
                 val backgroundStatement = "background_location_statement.html"
-                InfoDialog(backgroundStatement, null, false, "Yes", true)
+                InfoDialog(backgroundStatement, null, InfoDialog.PERMISSION_BACKGROUND_LOCATION, "Yes", true)
             } else {
                 val rationalStatement = "location_rational_statement.html"
                 InfoDialog(rationalStatement, null)
@@ -372,7 +389,6 @@ class MainActivity : AppCompatActivity() {
                     FragmentTransaction.TRANSIT_FRAGMENT_OPEN
                 ).commit()
             } else {
-                progressBarBluetooth.visibility = View.VISIBLE
                 supportFragmentManager.beginTransaction().replace(
                     R.id.frame_layout,
                     rdeSettingsFragment
@@ -395,9 +411,16 @@ class MainActivity : AppCompatActivity() {
         permissions: Array<out String>,
         grantResults: IntArray
     ) {
-        if (checkPermissionsBackground() || checkPermissionsForeground()) {
-            openRDEFragment()
+        if (requestCode == mPermissionID) {
+            if (checkPermissionsBackground() || checkPermissionsForeground()) {
+                openRDEFragment()
+            }
+        } else if (requestCode == mPermissionID+1) {
+            if (checkPermissionsBluetooth()) {
+                showBluetoothDialog()
+            }
         }
+
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
     }
 
@@ -612,6 +635,7 @@ class MainActivity : AppCompatActivity() {
         privacyPolicyVersionAccepted = sharedPref.getInt(PRIVACY_VERSION_KEY, 0)
         askedForPermissionForeground = sharedPref.getBoolean(FOREGROUND_LOCATION_KEY, false)
         askedForPermissionBackground = sharedPref.getBoolean(BACKGROUND_LOCATION_KEY, false)
+        askedForPermissionBluetooth = sharedPref.getBoolean(BLUETOOTH_PERMISSION_KEY, false)
     }
 
     /**
@@ -640,6 +664,7 @@ class MainActivity : AppCompatActivity() {
      * @see handleBluetoothDisconnection
      */
     class BTconnectionBroadcastReceiver(val activity: MainActivity) : BroadcastReceiver() {
+        @SuppressLint("MissingPermission")
         override fun onReceive(context: Context?, intent: Intent?) {
             when (intent?.action) {
                 BluetoothDevice.ACTION_ACL_DISCONNECTED -> {
@@ -673,9 +698,11 @@ class MainActivity : AppCompatActivity() {
                         Toast.LENGTH_LONG
                     ).show()
 
-                    activity.mBluetoothAdapter.enable()
-                    activity.mBluetoothAdapter.startDiscovery()
-                    activity.handleBluetoothDisconnection()
+                    if(activity.checkPermissionsBluetooth()) {
+                        activity.mBluetoothAdapter.enable()
+                        activity.mBluetoothAdapter.startDiscovery()
+                        activity.handleBluetoothDisconnection()
+                    }
                 }
             }
         }
@@ -787,7 +814,23 @@ class MainActivity : AppCompatActivity() {
      * Opens the Selection-Dialog for bonded Bluetooth devices.
      * @see BluetoothDialog
      */
+    @SuppressLint("MissingPermission")
     fun showBluetoothDialog() {
+        if (!checkPermissionsBluetooth()) {
+            val dialog = if (!askedForPermissionBluetooth || showBluetoothPermissionUI) {
+                val foregroundStatement = "bluetooth_permission_statement.html"
+                InfoDialog(foregroundStatement, null, InfoDialog.PERMISSION_BLUETOOTH, "Yes", true)
+            } else {
+                val rationalStatement = "bluetooth_rational_statement.html"
+                InfoDialog(rationalStatement, null)
+            }
+            dialog.show(supportFragmentManager, null)
+            return
+        }
+        if (!checkPermissionsBluetooth()) {
+            requestPermissionsBluetooth();
+            return
+        }
         // add all already paired devices
         val mPairedDevices = mBluetoothAdapter.bondedDevices
         val deviceList: ArrayList<BluetoothDevice> = ArrayList()
@@ -1031,6 +1074,19 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
+     * Checks for permissions to access Bluetooth.
+     * @return If bluetooth access permission is granted.
+     */
+    fun checkPermissionsBluetooth(): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            return (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT)
+                    == PackageManager.PERMISSION_GRANTED)
+        } else {
+            return true
+        }
+    }
+
+    /**
      * Requests permissions to access location data when App is in foreground.
      */
     private fun requestPermissionsForeground() {
@@ -1058,6 +1114,20 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
+     * Requests permissions to access bluetooth.
+     */
+    private fun requestPermissionsBluetooth() {
+        ActivityCompat.requestPermissions(
+            this,
+            arrayOf(
+                Manifest.permission.BLUETOOTH_CONNECT,
+                Manifest.permission.BLUETOOTH_SCAN
+            ),
+            mPermissionID+1
+        )
+    }
+
+    /**
      * Generic dialog for presenting information from a HTML file to the user.
      * Can be either used to show a HTML file or to show a HTML page represented as a string and replace given placeholders.
      * Used to ask for location permissions.
@@ -1072,7 +1142,7 @@ class MainActivity : AppCompatActivity() {
     class InfoDialog(
         val html: String,
         val replace: Map<String, String>? = null,
-        private val foreground: Boolean? = null,
+        private val requestedPermission: Int? = 0,
         private val acceptButtonText: String? = null,
         private val laterButton: Boolean? = null
     ) : DialogFragment
@@ -1101,12 +1171,15 @@ class MainActivity : AppCompatActivity() {
             return activity?.let {
                 val builder = AlertDialog.Builder(it)
                 builder.setPositiveButton(acceptButtonText ?: "Okay") { _, _ ->
-                    if (foreground == true) {
+                    if (requestedPermission == PERMISSION_FOREGROUND_LOCATION) {
                         (activity as MainActivity).requestPermissionsForeground()
                         (activity as MainActivity).askedForPermissionForeground = true
-                    } else if (foreground == false) {
+                    } else if (requestedPermission == PERMISSION_BACKGROUND_LOCATION) {
                         (activity as MainActivity).requestPermissionsBackground()
                         (activity as MainActivity).askedForPermissionBackground = true
+                    } else if(requestedPermission == PERMISSION_BLUETOOTH) {
+                        (activity as MainActivity).requestPermissionsBluetooth()
+                        (activity as MainActivity).askedForPermissionBluetooth = true
                     }
                 }.setView(helpView)
                 if (laterButton == true) {
@@ -1115,43 +1188,39 @@ class MainActivity : AppCompatActivity() {
                 builder.create()
             } ?: throw IllegalStateException("Activity can not be null")
         }
+
+        companion object {
+            const val PERMISSION_FOREGROUND_LOCATION = 1
+            const val PERMISSION_BACKGROUND_LOCATION = 2
+            const val PERMISSION_BLUETOOTH = 3
+        }
     }
 
     override fun onBackPressed() {
         if (supportFragmentManager.fragments.any { it is LicenseFragment || it is InitialPrivacyFragment }) {
             return
         }
-        var fragment: Fragment? = null
-        for (f in supportFragmentManager.fragments) {
-            if (f.isVisible) {
-                fragment = f
-            }
-        }
         val nextFragment: Fragment =
-                when (fragment) {
-                    is ProfileDetailFragment -> {
-                        profileDetialFragment.onBackPressed()
-                        profilesFragment
-                    }
-                    is RDESettingsFragment -> {
-                        println("Back pressed in rde settings, stop gps source")
-                        gpsSource?.stop()
-                        homeFragment
-                    }
-                    is HistoryDetailFragment -> {
-                        historyFragment
-                    }
-                    else -> {
-                        homeFragment
-                    }
+            when (supportFragmentManager.fragments[0]) {
+                is ProfileDetailFragment -> {
+                    profileDetialFragment.onBackPressed()
+                    profilesFragment
                 }
+                is HistoryDetailFragment -> {
+                    historyFragment
+                }
+                else -> {
+                    homeFragment
+                }
+            }
         supportFragmentManager.beginTransaction().replace(R.id.frame_layout, nextFragment)
-                .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN).commit()
+            .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN).commit()
     }
 
     companion object {
         const val PRIVACY_VERSION_KEY = "privacyVersion"
         const val FOREGROUND_LOCATION_KEY = "foregroundLocation"
         const val BACKGROUND_LOCATION_KEY = "backgroundLocation"
+        const val BLUETOOTH_PERMISSION_KEY = "bluetoothPermissions"
     }
 }
