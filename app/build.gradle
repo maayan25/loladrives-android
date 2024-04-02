@@ -10,7 +10,7 @@ android {
     buildToolsVersion "32.0.0"
     defaultConfig {
         applicationId "de.unisaarland.loladrives"
-        minSdkVersion 17
+        minSdkVersion 23
         targetSdkVersion 33
         versionCode 11
         versionName "1.0.8"

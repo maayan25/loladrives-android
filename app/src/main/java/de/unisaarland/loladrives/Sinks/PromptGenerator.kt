@@ -223,6 +223,7 @@ class PromptGenerator (
             PromptType.INVALIDRDEREASON -> {
                 TODO("Add prompt handler here for invalid reason")
             }
+            null -> TODO("Fix this, non exhaustive statements on enum not allowed")
         }
     }
 

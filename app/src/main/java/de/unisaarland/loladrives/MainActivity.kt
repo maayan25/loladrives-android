@@ -19,6 +19,7 @@ import android.util.Log
 import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -104,6 +105,7 @@ class MainActivity : AppCompatActivity() {
         }
 
     private val showBluetoothPermissionUI: Boolean
+        @RequiresApi(Build.VERSION_CODES.M)
         get() {
             return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 shouldShowRequestPermissionRationale(Manifest.permission.BLUETOOTH_CONNECT) ||
@@ -814,6 +816,7 @@ class MainActivity : AppCompatActivity() {
      * Opens the Selection-Dialog for bonded Bluetooth devices.
      * @see BluetoothDialog
      */
+    @RequiresApi(Build.VERSION_CODES.M)
     @SuppressLint("MissingPermission")
     fun showBluetoothDialog() {
         if (!checkPermissionsBluetooth()) {

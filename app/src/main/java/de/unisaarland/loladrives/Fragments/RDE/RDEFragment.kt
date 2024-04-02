@@ -163,6 +163,7 @@ class RDEFragment : Fragment() {
                                 activity.rdeSettingsFragment
                             ).setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN).commit()
                         }
+                        NO_FUELTYPE -> TODO("non exhaustive not allowed")
                     }
                 }
             }
