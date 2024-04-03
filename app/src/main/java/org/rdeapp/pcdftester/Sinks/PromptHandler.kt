@@ -93,28 +93,6 @@ class PromptHandler (
     }
 
     /**
-     * Generate the prompt for an invalid RDE test.
-     * Using the outputs from the RTLola analysis, the prompt is generated and displayed to the user.
-     * Parameters:
-     * @param isValidTest The value of the isValidTest output from the RTLola analysis.
-     * @param notRDEtest The value of the notRDEtest output from the RTLola analysis.
-     */
-    fun generateInvalidRDEReason(isValidTest: Double, notRDEtest: Double) {
-        // matching isValidTest(1.0...8.0) with appropriate violation prompt
-        when (isValidTest) {
-            0.0 -> fragment.invalidRDEReason = "Unknown reason for invalid RDE test"
-            1.0 -> fragment.invalidRDEReason = "Trip is valid"
-            2.0 -> fragment.invalidRDEReason = "Trip duration was too short or too long"
-            3.0 -> fragment.invalidRDEReason = "Exceeded the maximum speed"
-            4.0 -> fragment.invalidRDEReason = "Exceeded the ambient temperature?"
-            5.0 -> fragment.invalidRDEReason = "Exceeded emissions limits"
-            6.0 -> fragment.invalidRDEReason = "Invalid trip dynamics"
-            7.0 -> fragment.invalidRDEReason = "More than 5 long stops"
-            8.0 -> fragment.invalidRDEReason = "Invalid average urban speed"
-        }
-    }
-
-    /**
      * Generate the prompt according to the PromptType set from the analysis done on the trajectory
      * so far.
      * Sets the TextViews for the RDE prompt and analysis depending on the PromptType.
@@ -130,9 +108,6 @@ class PromptHandler (
             fragment.textViewRDEPrompt.text = "Stop the RDE test and as the test is valid"
             fragment.textViewRDEPrompt.setTextColor(Color.RED)
         } else {
-            // Store the reason for the invalid RDE test to use in the HistoryFragment later on
-            fragment.invalidRDEReason = trajectoryAnalyser.checkInvalid().toString().toLowerCase()
-
             // Only speak if the text has changed and the prompt type has changed
             if ((currentPromptText != fragment.textViewRDEPrompt.text.toString() && currentPromptType != newPromptType) || (getTimeDifference() > 120000 && currentPromptText != lastSpeechPromptText )) {
                 speak(fragment.textViewRDEPrompt.text.toString())

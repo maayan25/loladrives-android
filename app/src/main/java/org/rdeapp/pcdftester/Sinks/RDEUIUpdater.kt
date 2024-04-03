@@ -68,10 +68,10 @@ class RDEUIUpdater(
                     outputs[3],
                     totalTime,
                     fragment.rdeValidator.currentSpeed,
-                    outputs[7]
+                    outputs[7],
+                    outputs[17],
+                    outputs[18]
                 )
-
-                fragment.promptHandler.generateInvalidRDEReason(outputs[17], outputs[18])
 
                 // Update the prompt ProgressBars (total[0])
                 fragment.promptHandler.handlePrompt(outputs[0], outputs[18] == 1.0, outputs[17] == 1.0)

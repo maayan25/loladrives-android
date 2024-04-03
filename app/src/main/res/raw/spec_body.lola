@@ -224,6 +224,8 @@ output not_rde_test: Bool := (
     is_ambient_exceeded  // ambient exceeded
 )
 
+output invalid_trip_dynamics_num: Float64 := if (u_avg_v <= 74.6 && u_va_pct > (0.136 * u_avg_v + 14.44)) || (u_avg_v > 74.6 && u_va_pct > (0.0742 * u_avg_v + 18.966)) then 6.0 else (if (r_avg_v <= 74.6 && r_va_pct > (0.136 * r_avg_v + 14.44)) || (r_avg_v > 74.6 && r_va_pct > (0.0742 * r_avg_v + 18.966)) then 6.0 else (if (m_avg_v <= 74.6 && m_va_pct > (0.136 * m_avg_v + 14.44)) || (m_avg_v > 74.6 && m_va_pct > (0.0742 * m_avg_v + 18.966)) then 6.0 else (if (u_avg_v <= 94.05 && u_rpa < (-0.0016 * u_avg_v + 0.1755)) || (u_avg_v > 94.05 && u_rpa < 0.025) then 6.0 else (if (r_avg_v <= 94.05 && r_rpa < (-0.0016 * r_avg_v + 0.1755)) || (r_avg_v > 94.05 && r_rpa < 0.025) then 6.0 else (if (m_avg_v <= 94.05 && m_rpa < (-0.0016 * m_avg_v + 0.1755)) || (m_avg_v > 94.05 && m_rpa < 0.025) then 6.0 else 0.0)))))
+
 // 2 = trip too long/ too short 3 = max speed exceeded 4 = ambient exceeded 5 = emission limits exceeded 6 = invalid trip dynamics 7 = long stops 8 = Invalid average urban speed
 output reason: Float64 :=  if (90.0 * 60.0 > t) || (t > 120.0 * 60.0) then 2.0 else (if v_max > 160.0 then 3.0 else (if is_ambient_exceeded then 4.0 else (if emission_limits_exceeded then 5.0 else (if invalid_trip_dynamics then 6.0 else (if long_stops >= 5 then 7.0 else (if (15.0 <= u_avg_v &&  u_avg_v <= 40.0) then 8.0 else 0.0))))))
 

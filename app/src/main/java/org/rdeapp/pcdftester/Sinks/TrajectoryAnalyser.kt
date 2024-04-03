@@ -30,6 +30,9 @@ class TrajectoryAnalyser(
     // Variables to keep track of whether the test is invalid
     private var isInvalid: PromptType = PromptType.NONE
 
+    private var isValid: Double = 0.0
+    private var notRDETest: Double = 0.0
+
     /**
      * Update the analyser with data on the progress of the test according to the received RTLola results.
      * @param urbanDistance The distance travelled in the urban driving mode.
@@ -45,7 +48,9 @@ class TrajectoryAnalyser(
         motorwayDistance: Double,
         totalTime: Double,
         currentSpeed: Double,
-        averageUrbanSpeed: Double
+        averageUrbanSpeed: Double,
+        isValid: Double,
+        notRDETest: Double,
     ) {
         this.totalTime = totalTime
         this.currentSpeed = currentSpeed
@@ -72,6 +77,11 @@ class TrajectoryAnalyser(
         motorwaySufficient = motorwayProportion >= 0.18
         ruralSufficient = ruralProportion >= 0.18
         urbanSufficient = urbanProportion >= 0.23
+
+        // store the current state of the test
+        this.isValid = isValid
+        this.notRDETest = notRDETest
+
     }
 
     /**
@@ -161,7 +171,7 @@ class TrajectoryAnalyser(
         firstDrivingMode: DrivingMode,
         secondDrivingMode: DrivingMode
     ): DrivingMode {
-        return if (desiredDrivingMode == firstDrivingMode || currentDrivingMode() == firstDrivingMode) {
+        return if (currentDrivingMode() == firstDrivingMode) {
             firstDrivingMode
         } else {
             secondDrivingMode
@@ -454,5 +464,30 @@ class TrajectoryAnalyser(
      */
     fun getMotorwayPercentage(): Double {
         return (motorwayProportion / 0.18) * 100
+    }
+
+    /**
+     * Get the current state of the test
+     */
+    fun getIsValid(): Double {
+        return isValid
+    }
+
+    /**
+     * Get the current state of the test
+     */
+    fun getNotRDETest(): Double {
+        return notRDETest
+    }
+
+    /**
+     *
+     */
+    fun getSufficient(drivingMode: DrivingMode): Boolean {
+        return when (drivingMode) {
+            DrivingMode.URBAN -> urbanSufficient
+            DrivingMode.RURAL -> ruralSufficient
+            DrivingMode.MOTORWAY -> motorwaySufficient
+        }
     }
 }
