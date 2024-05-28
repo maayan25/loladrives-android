@@ -227,8 +227,19 @@ output not_rde_test: Bool := (
 output invalid_trip_dynamics_num: Float64 := if (u_avg_v <= 74.6 && u_va_pct > (0.136 * u_avg_v + 14.44)) || (u_avg_v > 74.6 && u_va_pct > (0.0742 * u_avg_v + 18.966)) then 6.0 else (if (r_avg_v <= 74.6 && r_va_pct > (0.136 * r_avg_v + 14.44)) || (r_avg_v > 74.6 && r_va_pct > (0.0742 * r_avg_v + 18.966)) then 6.0 else (if (m_avg_v <= 74.6 && m_va_pct > (0.136 * m_avg_v + 14.44)) || (m_avg_v > 74.6 && m_va_pct > (0.0742 * m_avg_v + 18.966)) then 6.0 else (if (u_avg_v <= 94.05 && u_rpa < (-0.0016 * u_avg_v + 0.1755)) || (u_avg_v > 94.05 && u_rpa < 0.025) then 6.0 else (if (r_avg_v <= 94.05 && r_rpa < (-0.0016 * r_avg_v + 0.1755)) || (r_avg_v > 94.05 && r_rpa < 0.025) then 6.0 else (if (m_avg_v <= 94.05 && m_rpa < (-0.0016 * m_avg_v + 0.1755)) || (m_avg_v > 94.05 && m_rpa < 0.025) then 6.0 else 0.0)))))
 
 // 2 = trip too long/ too short 3 = max speed exceeded 4 = ambient exceeded 5 = emission limits exceeded 6 = invalid trip dynamics 7 = long stops 8 = Invalid average urban speed
-output reason: Float64 :=  if (90.0 * 60.0 > t) || (t > 120.0 * 60.0) then 2.0 else (if v_max > 160.0 then 3.0 else (if is_ambient_exceeded then 4.0 else (if emission_limits_exceeded then 5.0 else (if invalid_trip_dynamics then 6.0 else (if long_stops >= 5 then 7.0 else (if (15.0 <= u_avg_v &&  u_avg_v <= 40.0) then 8.0 else 0.0))))))
-
+//output reason: Float64 :=  if (90.0 * 60.0 > t) || (t > 120.0 * 60.0) then 2.0 else (if v_max > 160.0 then 3.0 else (if is_ambient_exceeded then 4.0 else (if emission_limits_exceeded then 5.0 else (if invalid_trip_dynamics then 6.0 else (if long_stops >= 5 then 7.0 else (if (15.0 <= u_avg_v &&  u_avg_v <= 40.0) then 8.0 else 0.0))))))
+// 2 = trip too long/too short
+// 3 = max speed exceeded
+// 4 = stopping percentage
+// 5 = is_ambient_exceeded
+// 6 = invalid trip dynamics
+// 7 = long stops
+// 8 = Invalid average urban speed
+// 9 = Invalid Urban proportion
+// 10 = Invalid Rural proportion
+// 11 = Invalid Motorway proportion
+// 12 = Failed to satisfy trip requirements
+output reason: Float64 :=  if (90.0 * 60.0 > t) || (t > 120.0 * 60.0) then 2.0 else (if v_max > 160.0 then 3.0 else (if (0.06 <= u_stop_pc && u_stop_pc <= 0.30) then 4.0 else (if is_ambient_exceeded then 5.0 else (if invalid_trip_dynamics then 6.0 else (if long_stops >= 5 then 7.0 else (if (15.0 <= u_avg_v &&  u_avg_v <= 40.0) then 8.0 else (if 0.29 <= (if d > 0.0 then d_u / d else 0.0) && (if d > 0.0 then d_u / d else 0.0) <= 0.44 then 9.0 else (if 0.23 <= (if d > 0.0 then  d_r / d else  0.0) && (if d > 0.0 then  d_r / d else  0.0) <= 0.43 then 10.0 else (if 0.23 <= (if d > 0.0 then d_m / d else 0.0) && (if d > 0.0 then d_m / d else 0.0) <= 0.43 then 11.0 else (if !satisfies_trip_requirements then 12.0 else 0.0))))))))))
 // numerical helper streams for RDE-UI
 output is_valid_test_num: Float64 := if is_valid_test then 1.0 else reason
 output not_rde_test_num: Float64 := if not_rde_test then 1.0 else reason

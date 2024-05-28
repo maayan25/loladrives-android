@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.os.Bundle
 import android.text.Html
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -268,13 +269,17 @@ class HistoryDetailFragment(val file: File,  val rde: Boolean) :
             1.0 -> return "Trip is valid"
             2.0 -> return "Trip duration was too short or too long"
             3.0 -> return "Exceeded the maximum speed"
-            4.0 -> return "Exceeded the ambient temperature?"
-            5.0 -> return "Exceeded emissions limits"
+            4.0 -> return "Invalid stopping percentage"
+            5.0 -> return "Exceeded the ambient temperature"
             6.0 -> return "Invalid trip dynamics"
             7.0 -> return "More than 5 long stops"
             8.0 -> return "Invalid average urban speed"
+            9.0 -> return "Invalid urban proportion of the trip"
+            10.0 -> return "Invalid rural proportion of the trip"
+            11.0 -> return "Invalid motorway proportion of the trip"
+            12.0 -> return "Failed to satisfy trip requirements"
+            else -> return "Unknown reason for invalid RDE test"
         }
-        return "Unknown reason for invalid RDE test"
     }
     private fun initRDEHelpOnClick() {
         // Total Views
@@ -480,8 +485,8 @@ class HistoryDetailFragment(val file: File,  val rde: Boolean) :
     }
 
     private fun showRDE() {
-        eventDetailListView.visibility = View.INVISIBLE
-        chartView.visibility = View.INVISIBLE
+        eventDetailListView.visibility = View.VISIBLE
+        chartView.visibility = View.VISIBLE
         rdeView.visibility = View.VISIBLE
     }
 

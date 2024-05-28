@@ -34,6 +34,8 @@ class PromptGenerator (
     // Last update to the driving mode
     private var lastUpdateDrivingMode: Long = 0
 
+    private var lastUpdatePrompt: Double = 0.0
+
 
     /**
      * Analyse the trajectory driven so far by using functions from the TrajectoryAnalyser class. If
@@ -50,16 +52,23 @@ class PromptGenerator (
             // set the desired driving mode accrued to the sufficient driving modes so far
             desiredDrivingMode = trajectoryAnalyser.setDesiredDrivingMode()
 
-            if (desiredDrivingMode == previousDrivingMode && currentDrivingMode != desiredDrivingMode && getTimeDifferenceDrivingMode() > 150){
+            // Fix the driving mode if it has not changed for 15 seconds
+            if (desiredDrivingMode == previousDrivingMode && currentDrivingMode != desiredDrivingMode && getTimeDifferenceDrivingMode() > 100000 || lastUpdatePrompt > 0.0) {
                 desiredDrivingMode = currentDrivingMode
-                setDrivingModeUpdated()
+                trajectoryAnalyser.updateDesiredDrivingMode(desiredDrivingMode)
+                if (lastUpdatePrompt > 0.0) {
+                    desiredDrivingMode = previousDrivingMode
+                } else {
+                    lastUpdatePrompt = 1.0
+                }
+                if (getTimeDifferenceDrivingMode() > 150000) {
+                    println("Fixing the driving mode to $desiredDrivingMode")
+                    lastUpdateDrivingMode = System.currentTimeMillis()
+                    lastUpdatePrompt = 0.0
+                }
             }
 
             Log.d("desired driving t",getTimeDifferenceDrivingMode().toString())
-
-            if (desiredDrivingMode != previousDrivingMode || currentDrivingMode == previousDrivingMode) {
-                setDrivingModeUpdated()
-            }
 
             // get the speed change needed to improve the driving style
             speedChange = trajectoryAnalyser.computeSpeedChange()
@@ -215,7 +224,8 @@ class PromptGenerator (
                 setAverageUrbanSpeedPrompt(averageUrbanSpeed, constraints[3]!!)
             }
             PromptType.STOPPINGPERCENTAGE -> {
-                setStoppingPercentagePrompt(constraints[2]!!)
+                val stoppingPercentage = trajectoryAnalyser.getStoppingPercentage()
+                setStoppingPercentagePrompt(stoppingPercentage, constraints[2]!!)
             }
 
             // Set analysis in case of constraint in Motorway driving mode
@@ -242,11 +252,18 @@ class PromptGenerator (
         val isValid = trajectoryAnalyser.getIsValid()
         val notRDEtest = trajectoryAnalyser.getNotRDETest()
         val reason = generateInvalidRDEReason(isValid, notRDEtest)
-        promptText = "Your RDE test is invalid but a valid RDE test time of ${trajectoryAnalyser.getTotalTime()} has passed."
-        analysisText = "This RDE test is invalid because ${reason.toLowerCase()} constraint were not met."
-        promptColour = Color.RED
-        analysisColour = Color.BLACK
-
+        val time = String.format("%.3f", trajectoryAnalyser.getTotalTime()).toDouble()
+        if (isValid == 1.0) {
+            promptText = "This RDE test is valid."
+            analysisText = "The RDE test is valid because all constraints are met."
+            promptColour = Color.GREEN
+            analysisColour = Color.BLACK
+        } else {
+            promptText = "A valid RDE test time of $time has passed."
+            analysisText = "This RDE test is invalid because ${reason.toLowerCase()}."
+            promptColour = Color.RED
+            analysisColour = Color.BLACK
+        }
     }
 
     /**
@@ -256,16 +273,28 @@ class PromptGenerator (
      * (Less than 1/3 of the expected distance is travelled)
      */
     private fun setNonePrompt() {
+        analysisText = "You have completed "
         val urbanPercentage =
-            String.format("%.2f", trajectoryAnalyser.getUrbanPercentage()).toDouble().toInt()
+            String.format("%.3f", trajectoryAnalyser.getUrbanPercentage()).toDouble().toInt()
         val ruralPercentage =
-            String.format("%.2f", trajectoryAnalyser.getRuralPercentage()).toDouble().toInt()
+            String.format("%.3f", trajectoryAnalyser.getRuralPercentage()).toDouble().toInt()
         val motorwayPercentage =
-            String.format("%.2f", trajectoryAnalyser.getMotorwayPercentage()).toDouble().toInt()
+            String.format("%.3f", trajectoryAnalyser.getMotorwayPercentage()).toDouble().toInt()
 
         promptText = "You are driving at the speed of ${trajectoryAnalyser.getCurrentSpeed().toInt()}km/h."
-        analysisText =
-            "You have completed $urbanPercentage% of the required urban driving, $ruralPercentage% of the required rural driving, and $motorwayPercentage% of the required motorway driving."
+        if (urbanPercentage != 0) {
+            analysisText += "$urbanPercentage% of the required urban driving, "
+        }
+        if (ruralPercentage != 0) {
+            analysisText += "$ruralPercentage% of the required rural driving, "
+        }
+        if (motorwayPercentage != 0) {
+            analysisText += "$motorwayPercentage% of the required motorway driving."
+        }
+        if (analysisText == "You have completed ") {
+            analysisText = "You have completed 0% of the required driving."
+        }
+
         promptColour = Color.BLACK
         analysisColour = Color.BLACK
     }
@@ -276,7 +305,7 @@ class PromptGenerator (
      */
     private fun setHighSpeedPrompt(highSpeedDuration: Double) {
         // Round the duration to 2 decimal
-        val highSpeedDurationRounded = String.format("%.2f", highSpeedDuration).toDouble()
+        val highSpeedDurationRounded = String.format("%.3f", highSpeedDuration).toDouble()
 
         analysisText =
             "You need to drive at 100km/h or more for at least $highSpeedDurationRounded more minutes."
@@ -312,8 +341,8 @@ class PromptGenerator (
      */
     private fun setAverageUrbanSpeedPrompt(averageUrbanSpeed: Double, changeSpeed: Double) {
         // Round values to 2 decimal places
-        val averageUrbanSpeedRounded = String.format("%.2f", averageUrbanSpeed).toDouble()
-        val changeSpeedRounded = String.format("%.2f", changeSpeed).toDouble()
+        val averageUrbanSpeedRounded = String.format("%.3f", averageUrbanSpeed).toDouble()
+        val changeSpeedRounded = String.format("%.3f", changeSpeed).toDouble()
 
         when {
             averageUrbanSpeedRounded > 38 && averageUrbanSpeedRounded < 40 -> {
@@ -345,18 +374,37 @@ class PromptGenerator (
      * Set prompt text for the stopping percentage.
      * @param stoppingPercentage The difference in stopping percentage from the upper or lower bounds
      */
-    private fun setStoppingPercentagePrompt(stoppingPercentage: Double) {
+    private fun setStoppingPercentagePrompt(stoppingPercentage: Double, changeStopping: Double) {
         // Round values to 2 decimal places
-        val stoppingPercentageRounded = String.format("%.2f", stoppingPercentage).toDouble().toInt()
+        val stoppingPercentageRounded = String.format("%.3f", stoppingPercentage * 100).toDouble()
+        val changeStoppingRounded = String.format("%.3f", changeStopping * 100).toDouble()
 
-        if (stoppingPercentageRounded > 0) {
-            promptText = "You are stopping too little. Try to stop more."
-            analysisText = "You need to stop for at least ${stoppingPercentageRounded * 100}% more of the urban time."
-            promptColour = Color.RED
-        } else {
-            promptText = "You are close to exceeding the stopping percentage. Try to stop less."
-            analysisText = "You are stopping ${-(stoppingPercentageRounded) * 100}% more than the upper bound."
-            promptColour = Color.GREEN
+        when {
+            stoppingPercentage == 0.0 -> {
+                promptText = "You have not stopped at all."
+                analysisText = "You need to stop for at least 6% of the urban driving time."
+                promptColour = Color.RED
+            }
+            stoppingPercentage > 0.26 && stoppingPercentage < 0.3 -> {
+                promptText = "Your stopping percentage, ${stoppingPercentageRounded}%, is close to being invalid"
+                analysisText = "You need to spend ${changeStoppingRounded}% of the urban driving time driving instead of stopping."
+                promptColour = Color.RED
+            }
+            stoppingPercentage > 0.06 && stoppingPercentage < 0.1 -> {
+                promptText = "Your stopping percentage, ${stoppingPercentageRounded}%, is close to being invalid"
+                analysisText = "You need to stop for at least ${-changeStoppingRounded}% less of the urban driving time."
+                promptColour = Color.GREEN
+            }
+            changeStoppingRounded < 0 -> {
+                promptText = "Your stopping percentage, ${stoppingPercentageRounded}%, is too high."
+                analysisText = "You need to spend ${-changeStoppingRounded}% more time driving rather than stopping."
+                promptColour = Color.RED
+            }
+            changeStoppingRounded > 0 -> {
+                promptText = "Your stopping percentage, ${stoppingPercentageRounded}%, is too low."
+                analysisText = "You need to stop for at least ${changeStoppingRounded}% more of the urban driving time."
+                promptColour = Color.GREEN
+            }
         }
     }
 
@@ -423,13 +471,11 @@ class PromptGenerator (
      */
     private fun setDrivingStyleAnalysis(duration: Double) {
         // Round value to 2 decimal places
-        val durationRounded = String.format("%.2f", duration).toDouble()
+        val durationRounded = String.format("%.3f", duration).toDouble()
         analysisText = when (desiredDrivingMode) {
             DrivingMode.URBAN -> {
                 if (duration < 0.0) {
-                    "Driven the required distance for the ${
-                        desiredDrivingMode.toString().toLowerCase()
-                    } driving style. Do not drive more than ${-durationRounded.toInt()} at a average speed of 30 km/h"
+                    "Do not drive for more than ${-durationRounded.toInt()} minutes at an average speed of 30 km/h"
                 } else {
                     "Drive at an average speed of 30 km/h for at least ${durationRounded.toInt()} minutes."
                 }
@@ -437,9 +483,7 @@ class PromptGenerator (
 
             DrivingMode.RURAL -> {
                 if (duration < 0.0) {
-                    "Driven the required distance for the ${
-                        desiredDrivingMode.toString().toLowerCase()
-                    } driving style. Do not drive more than ${-durationRounded.toInt()} at a average speed of 75 km/h"
+                    "Do not drive for more than ${-durationRounded.toInt()} minutes at an average speed of 75 km/h"
                 } else {
                     "Drive at an average speed of 75 km/h for at least ${durationRounded.toInt()} minutes"
                 }
@@ -447,9 +491,7 @@ class PromptGenerator (
 
             DrivingMode.MOTORWAY -> {
                 if (duration < 0.0) {
-                    "Driven the required distance for the ${
-                        desiredDrivingMode.toString().toLowerCase()
-                    } driving style. Do not drive more than ${-durationRounded.toInt()} at a average speed of 75 km/h"
+                    "Do not drive for more than ${-durationRounded.toInt()} at an average speed of 115 km/h"
                 } else {
                     "Drive at an average speed of 115 km/h for at least ${durationRounded.toInt()} minutes"
                 }
@@ -467,17 +509,21 @@ class PromptGenerator (
      */
     private fun generateInvalidRDEReason(isValidTest: Double, notRDEtest: Double): String {
         // matching isValidTest(1.0...8.0) with appropriate violation prompt
-        return when (isValidTest) {
-            0.0 ->  "Unknown reason for invalid RDE test"
-            1.0 ->  "Trip is valid"
-            2.0 ->  "Trip duration was too short or too long"
-            3.0 -> "Exceeded the maximum speed"
-            4.0 -> "Exceeded the ambient temperature?"
-            5.0 ->  "Exceeded emissions limits"
-            6.0 ->  "Invalid trip dynamics"
-            7.0 ->  "More than 5 long stops"
-            8.0 ->  "Invalid average urban speed"
-            else -> "Unknown reason for invalid RDE test"
+        when (isValidTest) {
+            0.0 -> return "Unknown reason for invalid RDE test"
+            1.0 -> return "Trip is valid"
+            2.0 -> return "Trip duration was too short or too long"
+            3.0 -> return "Exceeded the maximum speed"
+            4.0 -> return "Invalid stopping percentage"
+            5.0 -> return "Exceeded the ambient temperature"
+            6.0 -> return "Invalid trip dynamics"
+            7.0 -> return "More than 5 long stops"
+            8.0 -> return "Invalid average urban speed"
+            9.0 -> return "Invalid urban proportion of the trip"
+            10.0 -> return "Invalid rural proportion of the trip"
+            11.0 -> return "Invalid motorway proportion of the trip"
+            12.0 -> return "Failed to satisfy trip requirements"
+            else -> return "Unknown reason for invalid RDE test"
         }
     }
 

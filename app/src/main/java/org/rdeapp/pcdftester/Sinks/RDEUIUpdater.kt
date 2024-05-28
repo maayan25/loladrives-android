@@ -66,6 +66,7 @@ class RDEUIUpdater(
                     outputs[1],
                     outputs[2],
                     outputs[3],
+                    outputs[4].toLong(),
                     totalTime,
                     fragment.rdeValidator.currentSpeed,
                     outputs[7],

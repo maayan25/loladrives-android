@@ -32,6 +32,7 @@ import java.io.File
 
 const val VERBOSITY_MODE = false
 const val EXTENDED_LOGGING = false
+const val ALLOW_RDE_WITHOUT_NOX = true
 
 /**
  * Main class for the RTLola communication and validation of the RDE constraints.
@@ -97,6 +98,9 @@ class RDEValidator(
         FUEL_AIR_EQUIVALENCE to null
     )
 
+    // Used to remember, in case ALLOW_RDE_WITHOUT_NOX is true, if the NOX sensor is unavailable in the car
+    private var usesVirtualNOxSensor = false
+
     /*
         Initial data is complete if we received values for all the sensors in the determined sensor profile and GPS data.
         If complete, we can start communicating with the RTLola engine.
@@ -109,7 +113,7 @@ class RDEValidator(
                     countAvailable++
                 }
             }
-            return countAvailable == rdeProfile.size + 1
+            return countAvailable == rdeProfile.size + 1 + (if (usesVirtualNOxSensor) 1 else 0)
         }
 
     // Load the FFI RTLola engine.
@@ -330,6 +334,7 @@ class RDEValidator(
         }
 
         // NOx sensor(s) to check for violation of the EU regulations.
+        usesVirtualNOxSensor = false
         when {
             supportedPids.contains(0x83) -> {
                 rdeProfile.add(NOX_SENSOR)
@@ -342,6 +347,10 @@ class RDEValidator(
             }
             supportedPids.contains(0xA8) -> {
                 rdeProfile.add(NOX_SENSOR_CORRECTED_ALTERNATIVE)
+            } ALLOW_RDE_WITHOUT_NOX -> {
+                // Pretend that NOx is supported by the engine
+                usesVirtualNOxSensor = true
+                inputs[NOX_PPM] = 0.0
             } else -> {
                 println("Incompatible for RDE: NOx sensor not provided by the car.")
                 return false
@@ -372,9 +381,9 @@ class RDEValidator(
             supportedPids.contains(0x66) -> {
                 rdeProfile.add(MAF_AIR_FLOW_RATE_SENSOR)
             } else -> {
-                println("Incompatible for RDE: Mass air flow not provided by the car.")
-                return false
-            }
+            println("Incompatible for RDE: Mass air flow not provided by the car.")
+            return false
+        }
         }
 
         // Fuel air equivalence ratio for a more precise calculation of the fuel rate with MAF.
@@ -405,8 +414,21 @@ class RDEValidator(
         }
 
         val supportedPids = getSupportedPids()
+
         // Check the Cars Fuel Type
-        fuelType = if (supportedPids.contains(0x51)) { getFuelType() } else { return INSUFFICIENT_SENSORS }
+        // Option 1: FUEL_TYPE is a supported PID:
+        if (supportedPids.contains(0x51)) {
+            fuelType = getFuelType()
+        }
+        // Option 2: The car provides data for a sensor, that is commonly used in Diesel cars, but not gasoline cars
+        else if (/* NOx sensor */ supportedPids.contains(0x83) || supportedPids.contains(0xA1) || supportedPids.contains(0xA7) || supportedPids.contains(0xA8) ||
+            /* EGR */ supportedPids.contains(0x2C) || supportedPids.contains(0x2D) ||
+            /* Diesel Aftertreatment */ supportedPids.contains(0x8B)) {
+            fuelType = "Diesel"
+        } else {
+            return INSUFFICIENT_SENSORS
+        }
+//        fuelType = if (supportedPids.contains(0x51)) { getFuelType() } else { return INSUFFICIENT_SENSORS }
 
         return if (checkSupportedPids(supportedPids, fuelType)) { OKAY } else { INSUFFICIENT_SENSORS }
     }
@@ -421,6 +443,7 @@ class RDEValidator(
     @ExperimentalCoroutinesApi
     fun monitorOffline(dataIterator: Iterator<PCDFEvent>): DoubleArray {
         if (!dataIterator.hasNext()) {
+            println("No data available for offline monitoring.")
             throw IllegalStateException()
         }
 
@@ -447,8 +470,13 @@ class RDEValidator(
                 when (val iEvent = (event as OBDEvent).toIntermediate()) {
                     is SupportedPidsEvent -> {
                         suppPids.addAll(iEvent.supportedPids)
+                        if (/* NOx sensor */ suppPids.contains(131) || suppPids.contains(0xA1) || suppPids.contains(0xA7) || suppPids.contains(0xA8) ||
+                            /* EGR */ suppPids.contains(0x2C) || suppPids.contains(0x2D) ||
+                            /* Diesel Aftertreatment */ suppPids.contains(0x8B)) {
+                            Log.d("Offline Monitoring", "Fuel type not provided by the car. Determining fuel type from other sensors.")
+                            fuelType = "Diesel"
+                        }
                     }
-                    // Get Fueltype
                     is FuelTypeEvent -> {
                         fuelType = iEvent.fueltype
                     }
@@ -457,12 +485,15 @@ class RDEValidator(
         }
 
         if (suppPids.isEmpty() || fuelType.isBlank()) {
+            Log.d("Offline Monitoring", "No supported PIDs or fuel type found.")
+            Log.d("Supported PIDs", fuelType)
             throw IllegalStateException()
         }
 
         // Check Supported PIDs
         val supported = checkSupportedPids(suppPids, fuelType)
         if (!supported) {
+            Log.d("Offline Monitoring", "Car not supported.")
             throw IllegalStateException()
         }
 

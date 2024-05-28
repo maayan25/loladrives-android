@@ -24,6 +24,7 @@ class TrajectoryAnalyser(
     // Variables to keep track of the current state of the test
     private var desiredDrivingMode: DrivingMode = DrivingMode.URBAN
     private var totalTime: Double = 0.0
+    private var urbanTime: Long = 0L
     private var currentSpeed: Double = 0.0
     private var averageUrbanSpeed: Double = 0.0
 
@@ -46,6 +47,7 @@ class TrajectoryAnalyser(
         urbanDistance: Double,
         ruralDistance: Double,
         motorwayDistance: Double,
+        urbanTime: Long,
         totalTime: Double,
         currentSpeed: Double,
         averageUrbanSpeed: Double,
@@ -81,6 +83,7 @@ class TrajectoryAnalyser(
         // store the current state of the test
         this.isValid = isValid
         this.notRDETest = notRDETest
+        this.urbanTime = urbanTime
 
     }
 
@@ -157,6 +160,13 @@ class TrajectoryAnalyser(
         }
 
         return desiredDrivingMode
+    }
+
+    /**
+     * Update the desired driving mode according to the passed parameter.
+     */
+    fun updateDesiredDrivingMode(drivingMode: DrivingMode) {
+        desiredDrivingMode = drivingMode
     }
 
     /**
@@ -240,40 +250,26 @@ class TrajectoryAnalyser(
      */
     private fun isStoppingTimeValid(): Double? {
         val currentStoppingTime: Double = velocityProfile.getStoppingTime() // in minutes
-        val remainingTime = 120 - totalTime
-
-        if (totalTime < 15 || currentStoppingTime == 0.0) {
-            // Don't check for stopping time in the first 15 minutes of the test
-            // because the stopping percentage is not reliable.
-            return null
-        }
+        val stoppingPercentage = currentStoppingTime / urbanTime
 
         when {
-            currentStoppingTime > 0.3 * 120.0 && remainingTime < (0.3 * 120.0 - currentStoppingTime) -> {
-                // Stopping percentage is invalid and can't be decreased to pass
-                isInvalid = PromptType.STOPPINGPERCENTAGE
+            totalTime < 15.0 -> {
+                // Don't check for stopping time in the first 15 minutes of the test
+                // because the stopping time is not reliable.
                 return null
             }
-            currentStoppingTime < 0.06 * 90.0 && remainingTime < (0.06 * 90.0 - currentStoppingTime) -> {
-                // Stopping percentage is invalid and can't be increased to pass
-                isInvalid = PromptType.STOPPINGPERCENTAGE
-                return null
+
+            stoppingPercentage > 0.06 && stoppingPercentage < 0.1 || stoppingPercentage < 0.06 -> {
+                // The stopping percentage is too high
+                return 0.06 - stoppingPercentage
             }
-            currentStoppingTime >= 0.03 * 90.0 && currentStoppingTime < 0.06 * 120.0 -> {
-                // Stopping percentage (Between 2.7 and 7.2 minutes) is close to being valid but can be increased to pass
-                return  0.06 - (currentStoppingTime / 90.0)
-            }
-            currentStoppingTime > 0.25 * 90 && currentStoppingTime < 0.3 * 120 -> {
-                // Stopping percentage (between 22.5 and 36 minutes) is close to being invalid but can be decreased to pass
-                return (currentStoppingTime / 120) - 0.3
-            }
-            0.06 * totalTime <= currentStoppingTime && currentStoppingTime <= 0.3 * totalTime -> {
-                return null
-            }
-            else -> {
-                return null
+
+            stoppingPercentage > 0.26 && stoppingPercentage < 0.3 || stoppingPercentage > 0.3 -> {
+                // The stopping percentage is too low
+                return 0.3 - stoppingPercentage
             }
         }
+        return null
     }
 
     /**
@@ -321,6 +317,13 @@ class TrajectoryAnalyser(
                 return null
             }
         }
+    }
+
+    /**
+     *
+     */
+    fun getStoppingPercentage(): Double {
+        return velocityProfile.getStoppingTime() / urbanTime
     }
 
     /**
@@ -401,7 +404,7 @@ class TrajectoryAnalyser(
                     val maxDistanceMore = (0.44 - urbanProportion) * expectedDistance
                     return -(maxDistanceMore * 2)
                 } else {
-                    // Calculate the distance left to drive in urban mode with an average speed of 30 km/h
+                    // Calculate the time left to drive in urban mode with an average speed of 30 km/h
                     val urbanDistanceLeft = (0.23 - urbanProportion) * expectedDistance
                     return urbanDistanceLeft * 2
                 }
@@ -409,7 +412,7 @@ class TrajectoryAnalyser(
 
             DrivingMode.RURAL -> {
                 if (ruralSufficient) {
-                    val maxDistanceMore = (0.43 - urbanProportion) * expectedDistance
+                    val maxDistanceMore = (0.43 - ruralProportion) * expectedDistance
                     return -(maxDistanceMore * 0.8)
                 } else {
                     // Calculate the distance left to drive in rural mode with an average speed of 75 km/h
@@ -420,7 +423,7 @@ class TrajectoryAnalyser(
 
             DrivingMode.MOTORWAY -> {
                 if (motorwaySufficient) {
-                    val maxDistanceMore = (0.43 - urbanProportion) * expectedDistance
+                    val maxDistanceMore = (0.43 - motorwayProportion) * expectedDistance
                     return -(maxDistanceMore * 0.5)
                 } else {
                     // Calculate the distance left to drive in motorway mode with an average speed of 120 km/h
