@@ -79,6 +79,18 @@ class RDEUIUpdater(
                 // Update the prompt ProgressBars (total[0])
                 fragment.promptHandler.handlePrompt(outputs[0], outputs[18] == 1.0, outputs[17] == 1.0)
 
+                fragment.trajectoryAnalyser.updateDynamicThresholds(
+                    outputs[7],
+                    outputs[8],
+                    outputs[9],
+                    outputs[13],
+                    outputs[14],
+                    outputs[15],
+                    outputs[10],
+                    outputs[11],
+                    outputs[12]
+                )
+
 
                 // Update the Dynamics-Markers (grey balls)
                 handleDynamics(

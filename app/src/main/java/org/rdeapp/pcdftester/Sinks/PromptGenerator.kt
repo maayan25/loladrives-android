@@ -96,6 +96,11 @@ class PromptGenerator (
         val veryHighSpeed = constraints[1]
         val stoppingTime = constraints[2]
         val averageUrbanSpeed = constraints[3]
+        val dynamicThresholdResult = trajectoryAnalyser.getDynamicThresholdResult(trajectoryAnalyser.currentDrivingMode())
+
+        if (!dynamicThresholdResult.isValid) {
+            promptType = PromptType.DYNAMICS
+        }
 
         when (trajectoryAnalyser.currentDrivingMode()) {
             // in motorway driving mode, check if the high speed or very high speed constraints
@@ -121,7 +126,6 @@ class PromptGenerator (
                     setModePromptType(totalDistance)
                 }
             }
-
             // in rural driving mode, set to a driving mode prompt type.
             else -> {
                 setModePromptType(totalDistance)
@@ -241,7 +245,7 @@ class PromptGenerator (
             }
             PromptType.DYNAMICS -> {
                 val currentDrivingMode = trajectoryAnalyser.currentDrivingMode()
-                setDynamicsPrompt()
+                setDynamicsPrompt(currentDrivingMode)
             }
             PromptType.INVALIDRDEREASON -> {
                 setInvalidRDEPrompt()
@@ -249,9 +253,25 @@ class PromptGenerator (
         }
     }
 
-    private fun setDynamicsPrompt() {
-        TODO("Not yet implemented")
+    private fun setDynamicsPrompt(currentDrivingMode: DrivingMode) {
+        val dynamicThresholdResult = trajectoryAnalyser.getDynamicThresholdResult(currentDrivingMode)
+        if (dynamicThresholdResult.belowLowerThreshold) {
 
+            promptText = "Your driving could be regarded as \"too smooth\". Increase your average speed of ${dynamicThresholdResult.averageSpeed}, the desirable average speed will be ${dynamicThresholdResult.computeAppropriateAverageSpeedLow()}."
+            analysisText = "Your current lower RPA ${dynamicThresholdResult.lowRPA} is too low, and the limit is ${dynamicThresholdResult.lowerThreshold}."
+            promptColour = Color.RED
+            analysisColour = Color.BLACK
+        } else if (dynamicThresholdResult.aboveUpperThreshold) {
+            promptText = "Your driving could be regarded as \"too aggressive\". Decrease your average speed of ${dynamicThresholdResult.averageSpeed}, the desirable average speed will be ${dynamicThresholdResult.computeAppropriateAverageSpeedHigh()}."
+            analysisText = "Your current upper RPA ${dynamicThresholdResult.highRPA} is too high, and the limit is ${dynamicThresholdResult.upperThreshold}."
+            promptColour = Color.RED
+            analysisColour = Color.BLACK
+        } else {
+            promptText = "Your driving style is appropriate."
+            analysisText = "Your lower RPA is ${dynamicThresholdResult.lowRPA} and your upper RPA is ${dynamicThresholdResult.highRPA}."
+            promptColour = Color.BLACK
+            analysisColour = Color.BLACK
+        }
     }
 
     /**

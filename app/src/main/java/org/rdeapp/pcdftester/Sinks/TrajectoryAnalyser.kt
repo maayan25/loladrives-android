@@ -30,6 +30,34 @@ class TrajectoryAnalyser(
     private var averageRuralSpeed: Double = 0.0
     private var averageMotorwaySpeed: Double = 0.0
 
+    private var dynamicUrbanThreshold: DynamicThresholdResult = DynamicThresholdResult(
+        belowLowerThreshold = false,
+        aboveUpperThreshold = false,
+        lowerThreshold = 0.0,
+        upperThreshold = 0.0,
+        highRPA = 0.0,
+        lowRPA = 0.0
+    )
+
+    private var dynamicRuralThreshold: DynamicThresholdResult = DynamicThresholdResult(
+        belowLowerThreshold = false,
+        aboveUpperThreshold = false,
+        lowerThreshold = 0.0,
+        upperThreshold = 0.0,
+        highRPA = 0.0,
+        lowRPA = 0.0
+    )
+
+    private var dynamicMotorwayThreshold: DynamicThresholdResult = DynamicThresholdResult(
+        belowLowerThreshold = false,
+        aboveUpperThreshold = false,
+        lowerThreshold = 0.0,
+        upperThreshold = 0.0,
+        highRPA = 0.0,
+        lowRPA = 0.0
+    )
+
+
     // Variables to keep track of whether the test is invalid
     private var isInvalid: PromptType = PromptType.NONE
 
@@ -91,6 +119,58 @@ class TrajectoryAnalyser(
         this.notRDETest = notRDETest
         this.urbanTime = urbanTime / 60
 
+    }
+
+    /**
+     * Update the analyser with data regarding the dynamic thresholds of the RPA.
+     * @param averageUrbanSpeed The average speed of the vehicle in the urban driving mode.
+     * @param averageRuralSpeed The average speed of the vehicle in the rural driving mode.
+     * @param averageMotorwaySpeed The average speed of the vehicle in the motorway driving mode.
+     * @param urbanRPAHigh The high threshold of the RPA in the urban driving mode.
+     * @param urbanRPALow The low threshold of the RPA in the urban driving mode.
+     * @param ruralRPAHigh The high threshold of the RPA in the rural driving mode.
+     * @param ruralRPALow The low threshold of the RPA in the rural driving mode.
+     * @param motorwayRPAHigh The high threshold of the RPA in the motorway driving mode.
+     * @param motorwayRPALow The low threshold of the RPA in the motorway driving mode.
+     *
+     */
+    fun updateDynamicThresholds(
+        averageUrbanSpeed: Double,
+        averageRuralSpeed: Double,
+        averageMotorwaySpeed: Double,
+        urbanRPALow: Double,
+        ruralRPALow: Double,
+        motorwayRPALow: Double,
+        urbanRPAHigh: Double,
+        ruralRPAHigh: Double,
+        motorwayRPAHigh: Double,
+    ) {
+        this.averageUrbanSpeed = averageUrbanSpeed
+        this.averageRuralSpeed = averageRuralSpeed
+        this.averageMotorwaySpeed = averageMotorwaySpeed
+
+        dynamicUrbanThreshold.setThresholds(urbanRPALow, urbanRPAHigh, averageUrbanSpeed)
+        dynamicRuralThreshold.setThresholds(ruralRPALow, ruralRPAHigh, averageRuralSpeed)
+        dynamicMotorwayThreshold.setThresholds(motorwayRPALow, motorwayRPAHigh, averageMotorwaySpeed)
+
+        dynamicUrbanThreshold.computeThreshold(averageUrbanSpeed)
+        dynamicRuralThreshold.computeThreshold(averageRuralSpeed)
+        dynamicMotorwayThreshold.computeThreshold(averageMotorwaySpeed)
+
+        dynamicUrbanThreshold.isThresholdValid()
+    }
+
+    /**
+     * Get the dynamic threshold result for the appropriate driving mode.
+     * @param drivingMode The driving mode to get the dynamic threshold result for.
+     * @return the dynamic threshold result for the appropriate driving mode.
+     */
+    fun getDynamicThresholdResult(drivingMode: DrivingMode): DynamicThresholdResult {
+        return when (drivingMode) {
+            DrivingMode.URBAN -> dynamicUrbanThreshold
+            DrivingMode.RURAL -> dynamicRuralThreshold
+            DrivingMode.MOTORWAY -> dynamicMotorwayThreshold
+        }
     }
 
     /**
@@ -505,19 +585,37 @@ class DynamicThresholdResult(
     var aboveUpperThreshold: Boolean,
     var lowerThreshold: Double,
     var upperThreshold: Double,
-    val currentRPA: Double,
+    var highRPA: Double,
+    var lowRPA: Double,
+    var averageSpeed: Double = 0.0,
+    var isValid : Boolean = false,
 ){
-    fun isThresholdValid(): Boolean {
-        return !belowLowerThreshold && !aboveUpperThreshold
+    fun isThresholdValid() {
+        this.isValid = !belowLowerThreshold && !aboveUpperThreshold
     }
 
-    fun computeChange(): Double {
-        return if (belowLowerThreshold) {
-            lowerThreshold - currentRPA
-        } else if (aboveUpperThreshold) {
-            upperThreshold - currentRPA
+    fun computeAppropriateAverageSpeedLow(): Double {
+        return if (averageSpeed < 94.05) {
+            if (averageSpeed == 0.0) {
+                0.0
+            } else {
+                (lowRPA - 0.1755) / -0.0016
+            }
         } else {
-            0.0
+            94.05
+        }
+    }
+    // Appropriate Average Speed High
+
+    fun computeAppropriateAverageSpeedHigh(): Double {
+        return if (averageSpeed < 74.6) {
+            if (averageSpeed == 0.0) {
+                0.0
+            } else {
+                (highRPA - 14.44) / 0.136
+            }
+        } else {
+            (highRPA - 18.966) /0.0742
         }
     }
 
@@ -525,8 +623,8 @@ class DynamicThresholdResult(
         val lowDynamics = calculateLowDynamics(averageSpeed)
         val highDynamics = calculateHighDynamics(averageSpeed)
 
-        belowLowerThreshold = currentRPA < lowDynamics
-        aboveUpperThreshold = currentRPA > highDynamics
+        belowLowerThreshold = lowRPA < lowDynamics
+        aboveUpperThreshold = highRPA > highDynamics
         lowerThreshold = lowDynamics
         upperThreshold = highDynamics
     }
@@ -554,8 +652,6 @@ class DynamicThresholdResult(
      * driving style.
      * @param avg_speed The average velocity for a driving style
      *                  (MOTORWAY, RURAL, URBAN)
-     *
-     *
      */
     private fun calculateHighDynamics(avg_speed: Double): Double {
         return if (avg_speed < 74.6) {
@@ -567,5 +663,11 @@ class DynamicThresholdResult(
         } else {
             0.0742 * avg_speed + 18.966
         }
+    }
+
+    fun setThresholds(lowRPA: Double, highRPA: Double, averageUrbanSpeed: Double) {
+        this.lowRPA = lowRPA
+        this.highRPA = highRPA
+        this.averageSpeed = averageUrbanSpeed
     }
 }
