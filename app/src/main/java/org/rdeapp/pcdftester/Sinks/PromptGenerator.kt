@@ -239,10 +239,19 @@ class PromptGenerator (
                 setDrivingStylePrompt(drivingStyleText)
                 setVeryHighSpeedPrompt(constraints[1]!!)
             }
+            PromptType.DYNAMICS -> {
+                val currentDrivingMode = trajectoryAnalyser.currentDrivingMode()
+                setDynamicsPrompt()
+            }
             PromptType.INVALIDRDEREASON -> {
                 setInvalidRDEPrompt()
             }
         }
+    }
+
+    private fun setDynamicsPrompt() {
+        TODO("Not yet implemented")
+
     }
 
     /**

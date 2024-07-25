@@ -27,6 +27,8 @@ class TrajectoryAnalyser(
     private var urbanTime: Long = 0L
     private var currentSpeed: Double = 0.0
     private var averageUrbanSpeed: Double = 0.0
+    private var averageRuralSpeed: Double = 0.0
+    private var averageMotorwaySpeed: Double = 0.0
 
     // Variables to keep track of whether the test is invalid
     private var isInvalid: PromptType = PromptType.NONE
@@ -51,12 +53,16 @@ class TrajectoryAnalyser(
         totalTime: Double,
         currentSpeed: Double,
         averageUrbanSpeed: Double,
+        averageRuralSpeed: Double,
+        averageMotorwaySpeed: Double,
         isValid: Double,
         notRDETest: Double,
     ) {
         this.totalTime = totalTime
         this.currentSpeed = currentSpeed
         this.averageUrbanSpeed = averageUrbanSpeed
+        this.averageRuralSpeed = averageRuralSpeed
+        this.averageMotorwaySpeed = averageMotorwaySpeed
 
         // total distance travelled so far
         val totalDistance = urbanDistance + ruralDistance + motorwayDistance
@@ -490,6 +496,76 @@ class TrajectoryAnalyser(
             DrivingMode.URBAN -> urbanSufficient
             DrivingMode.RURAL -> ruralSufficient
             DrivingMode.MOTORWAY -> motorwaySufficient
+        }
+    }
+}
+
+class DynamicThresholdResult(
+    var belowLowerThreshold: Boolean,
+    var aboveUpperThreshold: Boolean,
+    var lowerThreshold: Double,
+    var upperThreshold: Double,
+    val currentRPA: Double,
+){
+    fun isThresholdValid(): Boolean {
+        return !belowLowerThreshold && !aboveUpperThreshold
+    }
+
+    fun computeChange(): Double {
+        return if (belowLowerThreshold) {
+            lowerThreshold - currentRPA
+        } else if (aboveUpperThreshold) {
+            upperThreshold - currentRPA
+        } else {
+            0.0
+        }
+    }
+
+    fun computeThreshold(averageSpeed:Double){
+        val lowDynamics = calculateLowDynamics(averageSpeed)
+        val highDynamics = calculateHighDynamics(averageSpeed)
+
+        belowLowerThreshold = currentRPA < lowDynamics
+        aboveUpperThreshold = currentRPA > highDynamics
+        lowerThreshold = lowDynamics
+        upperThreshold = highDynamics
+    }
+
+    /**
+     * Calculate the lower threshold based on average velocity of
+     * driving style.
+     * @param avg_speed The average velocity for a driving style
+     *                  (MOTORWAY, RURAL, URBAN)
+     */
+    private fun calculateLowDynamics(avg_speed: Double): Double {
+        return if (avg_speed < 94.05) {
+            if (avg_speed == 0.0) {
+                0.0
+            } else {
+                -0.0016 * avg_speed + 0.1755
+            }
+        } else {
+            0.025
+        }
+    }
+
+    /**
+     * Calculate the lower threshold based on average velocity of
+     * driving style.
+     * @param avg_speed The average velocity for a driving style
+     *                  (MOTORWAY, RURAL, URBAN)
+     *
+     *
+     */
+    private fun calculateHighDynamics(avg_speed: Double): Double {
+        return if (avg_speed < 74.6) {
+            if (avg_speed == 0.0) {
+                0.0
+            } else {
+                0.136 * avg_speed + 14.44
+            }
+        } else {
+            0.0742 * avg_speed + 18.966
         }
     }
 }
