@@ -83,7 +83,7 @@ class TrajectoryAnalyser(
         // store the current state of the test
         this.isValid = isValid
         this.notRDETest = notRDETest
-        this.urbanTime = urbanTime
+        this.urbanTime = urbanTime / 60
 
     }
 
@@ -258,15 +258,14 @@ class TrajectoryAnalyser(
                 // because the stopping time is not reliable.
                 return null
             }
-
             stoppingPercentage > 0.06 && stoppingPercentage < 0.1 || stoppingPercentage < 0.06 -> {
-                // The stopping percentage is too high
-                return 0.06 - stoppingPercentage
+                // The stopping percentage is too low
+                return (0.06 - stoppingPercentage)
             }
 
             stoppingPercentage > 0.26 && stoppingPercentage < 0.3 || stoppingPercentage > 0.3 -> {
-                // The stopping percentage is too low
-                return 0.3 - stoppingPercentage
+                // The stopping percentage is too high
+                return (0.3 - stoppingPercentage)
             }
         }
         return null

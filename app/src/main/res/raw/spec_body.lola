@@ -211,6 +211,8 @@ output nox_mass_aggregated: Float64 @1Hz := D_nox_mass.aggregate(over: 2h, using
 output nox_per_kilometer: Float64 := (if d > 0.0 then nox_mass_aggregated / (d / 1000.0) else  0.0)
 output nox_exceeded: Bool := nox_per_kilometer > 0.168
 output emission_limits_exceeded: Bool := nox_exceeded
+output co2_mass_aggregated: Float64 @1Hz := total_co2_mass.aggregate(over: 2h, using: sum)
+output co2_per_kilometer: Float64 := (if d > 0.0 then co2_mass_aggregated / (d / 1000.0) else  0.0)
 //////////////////////////////////////////////////////////
 // Trigger iff the RDE regulation is violated.          //
 //////////////////////////////////////////////////////////
@@ -239,7 +241,7 @@ output invalid_trip_dynamics_num: Float64 := if (u_avg_v <= 74.6 && u_va_pct > (
 // 10 = Invalid Rural proportion
 // 11 = Invalid Motorway proportion
 // 12 = Failed to satisfy trip requirements
-output reason: Float64 :=  if (90.0 * 60.0 > t) || (t > 120.0 * 60.0) then 2.0 else (if v_max > 160.0 then 3.0 else (if (0.06 <= u_stop_pc && u_stop_pc <= 0.30) then 4.0 else (if is_ambient_exceeded then 5.0 else (if invalid_trip_dynamics then 6.0 else (if long_stops >= 5 then 7.0 else (if (15.0 <= u_avg_v &&  u_avg_v <= 40.0) then 8.0 else (if 0.29 <= (if d > 0.0 then d_u / d else 0.0) && (if d > 0.0 then d_u / d else 0.0) <= 0.44 then 9.0 else (if 0.23 <= (if d > 0.0 then  d_r / d else  0.0) && (if d > 0.0 then  d_r / d else  0.0) <= 0.43 then 10.0 else (if 0.23 <= (if d > 0.0 then d_m / d else 0.0) && (if d > 0.0 then d_m / d else 0.0) <= 0.43 then 11.0 else (if !satisfies_trip_requirements then 12.0 else 0.0))))))))))
+output reason: Float64 :=  if (90.0 * 60.0 > t) || (t > 120.0 * 60.0) then 2.0 else (if v_max > 160.0 then 3.0 else (if (0.06 <= u_stop_pc && u_stop_pc >= 0.30) then 4.0 else (if is_ambient_exceeded then 5.0 else (if invalid_trip_dynamics then 6.0 else (if long_stops >= 5 then 7.0 else (if (15.0 <= u_avg_v &&  u_avg_v <= 40.0) then 8.0 else (if 0.29 <= (if d > 0.0 then d_u / d else 0.0) && (if d > 0.0 then d_u / d else 0.0) <= 0.44 then 9.0 else (if 0.23 <= (if d > 0.0 then  d_r / d else  0.0) && (if d > 0.0 then  d_r / d else  0.0) <= 0.43 then 10.0 else (if 0.23 <= (if d > 0.0 then d_m / d else 0.0) && (if d > 0.0 then d_m / d else 0.0) <= 0.43 then 11.0 else (if !satisfies_trip_requirements then 12.0 else 0.0))))))))))
 // numerical helper streams for RDE-UI
 output is_valid_test_num: Float64 := if is_valid_test then 1.0 else reason
 output not_rde_test_num: Float64 := if not_rde_test then 1.0 else reason
