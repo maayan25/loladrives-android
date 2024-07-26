@@ -74,13 +74,27 @@
                 android:textColor="@color/cpecBlue"
                 android:layout_marginLeft="30dp"
                 />
+
+            <Switch
+                android:id="@+id/imperialSwitch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Imperial"
+                android:textSize="15sp"
+                android:textColor="@color/cpecBlue"
+                android:layout_gravity="start"
+                android:layout_marginLeft="40dp"
+                android:switchPadding="5dp"
+                />
+
         </androidx.appcompat.widget.Toolbar>
+
+
 
     </com.google.android.material.appbar.AppBarLayout>
 
     <FrameLayout
+        android:id="@+id/frame_layout"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:id="@+id/frame_layout">
-    </FrameLayout>
+        android:layout_height="match_parent"></FrameLayout>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

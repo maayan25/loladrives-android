@@ -29,6 +29,8 @@ class RDEUIUpdater(
     private val noxThr1 = 0.12 // [g/km]
     private val noxThr2 = 0.168 // [g/km]
 
+    private var metricSystem = true
+
     /**
      * Suspending function which receives (blocking) RTLola results over the [inputChannel] and updates the UI accordingly.
      */
