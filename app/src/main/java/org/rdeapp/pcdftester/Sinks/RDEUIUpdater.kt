@@ -48,6 +48,8 @@ class RDEUIUpdater(
             }
 
             try {
+                // Update metric toggle button
+                metricSystem = fragment.metricToggleButton.isChecked
                 // Update all the simple TextViews.
                 fragment.textViewTotalDistance.text = convertMeters(outputs[0].toLong())
                 fragment.textViewUrbanDistance.text = convertMeters(outputs[1].toLong())
@@ -274,24 +276,27 @@ class RDEUIUpdater(
         fragment.distance = expectedDistance
     }
 
-    companion object {
-        fun convertSeconds(seconds: Long): String {
-            val millis: Long = seconds * 1000
-            val tz = TimeZone.getTimeZone("UTC")
-            val df = SimpleDateFormat("HH:mm:ss", Locale.GERMANY)
-            df.timeZone = tz
-            return df.format(Date(millis))
-        }
-
-        fun convertMeters(meters: Long): String {
-            val kilometers = meters / 1000.0
-            return "%.2f".format(kilometers) + " km".replace(",", ".")
-        }
-
-        fun convert(value: Double, unit: String): String {
-            return "%.2f".format(value).replace(",", ".") + " $unit"
+    fun convertMeters(meters: Long): String {
+        if (metricSystem){
+            return "%.2f".format(meters / 1000.0).replace(",", ".") + " km"
+        } else {
+            return "%.2f".format(meters / 1609.344).replace(",", ".") + " mi"
         }
     }
+
+    companion object {
+        fun convertSeconds(seconds: Long): String {
+            val hours = seconds / 3600
+            val minutes = (seconds % 3600) / 60
+            val secs = seconds % 60
+            return String.format("%02d:%02d:%02d", hours, minutes, secs)
+        }
+    }
+
+    fun convert(value: Double, unit: String): String {
+        return "%.2f".format(value).replace(",", ".") + " $unit"
+    }
+
 
 }
 

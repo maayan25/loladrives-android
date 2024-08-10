@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.Toast
+import android.widget.ToggleButton
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentTransaction
 import de.unisaarland.loladrives.MainActivity
@@ -35,10 +36,11 @@ class RDEFragment : Fragment() {
     lateinit var velocityProfile: VelocityProfile
     private var uiUpdaterJob: Job? = null
     private lateinit var activity: MainActivity
+    lateinit var metricToggleButton: ToggleButton
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_r_d_e, container, false)
+        return inflater.inflate(R.layout.fragment_r_d_e_modify, container, false)
     }
 
     @ExperimentalCoroutinesApi
@@ -46,6 +48,7 @@ class RDEFragment : Fragment() {
         activity = requireActivity() as MainActivity
         activity.title_textview.text = getString(R.string.rde)
         activity.backButton.setImageResource(R.drawable.back_arrow_icon)
+        metricToggleButton = activity.toggleMetric
 
         initIntervalMarkers(16.0 / distance)
         if (activity.tracking) {

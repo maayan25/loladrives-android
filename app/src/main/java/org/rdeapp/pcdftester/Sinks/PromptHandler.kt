@@ -22,6 +22,8 @@ class PromptHandler (
 
     // Text to speech object
     private var tts: TextToSpeech? = TextToSpeech(fragment.requireActivity(), this)
+    // Metric system to use
+    private var metricSystem: Boolean = fragment.metricToggleButton.isChecked
 
     // The distance that should be travelled in the RDE test
     private var expectedDistance = fragment.distance
@@ -49,6 +51,8 @@ class PromptHandler (
      * @param totalDistance The total distance travelled so far.
      */
     suspend fun handlePrompt(totalDistance: Double, isInvalid: Boolean, notRDEtest: Boolean) {
+        // Metric system to use
+        promptGenerator.metricSystem = metricSystem
         // Check if the RDE test is still valid
         handleInvalidRDE()
 
@@ -99,6 +103,7 @@ class PromptHandler (
      * Depending on the previous prompt type and the previous prompt text, the prompt is either spoken or not.
      */
     private fun generatePrompt(totalDistance: Double, isValidTest: Boolean, notRDEtest: Boolean) {
+
         // Update the prompt and analysis texts and colours
         updatePrompt(totalDistance)
         newPromptType = promptGenerator.getPromptType()
