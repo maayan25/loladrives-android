@@ -3,6 +3,7 @@ package org.rdeapp.pcdftester.Sinks
 import android.graphics.Color
 import android.os.Build
 import android.speech.tts.TextToSpeech
+import android.util.Log
 import android.widget.Toast
 import androidx.fragment.app.FragmentTransaction
 import de.unisaarland.loladrives.Fragments.RDE.RDEFragment
@@ -105,6 +106,7 @@ class PromptHandler (
     private fun generatePrompt(totalDistance: Double, isValidTest: Boolean, notRDEtest: Boolean) {
 
         // Update the prompt and analysis texts and colours
+        Log.d("PromptHandler", "generating prompt")
         updatePrompt(totalDistance)
         newPromptType = promptGenerator.getPromptType()
 

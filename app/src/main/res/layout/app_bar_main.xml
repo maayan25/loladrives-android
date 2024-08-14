@@ -68,24 +68,25 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:gravity="left"
-                android:text="LolaDrives"
+                android:text="LolaPrompts"
                 android:layout_gravity="left"
                 android:textSize="20sp"
                 android:textColor="@color/cpecBlue"
                 android:layout_marginLeft="30dp"
                 />
 
-            <Switch
-                android:id="@+id/imperialSwitch"
+            <ToggleButton
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Imperial"
-                android:textSize="15sp"
+                android:id="@+id/toggleMetric"
+                android:layout_gravity="right"
+                android:layout_marginRight="10dp"
+                android:layout_marginTop="10dp"
+                android:textOff="Imperial"
+                android:textOn="Metric"
+                android:textSize="12sp"
                 android:textColor="@color/cpecBlue"
-                android:layout_gravity="start"
-                android:layout_marginLeft="40dp"
-                android:switchPadding="5dp"
-                />
+                android:checked="true"/>
 
         </androidx.appcompat.widget.Toolbar>
 

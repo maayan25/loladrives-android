@@ -200,10 +200,10 @@ class RDEFragment : Fragment() {
         val rmLow = maxOf(0.23, lowerBoundary) / max
         val rmHigh = maxOf(0.43, lowerBoundary) / max
 
-        gl_u_low.setGuidelinePercent((width * uLow + offset).toFloat())
-        gl_u_high.setGuidelinePercent((width * uHigh + offset).toFloat())
-        gl_rm_low.setGuidelinePercent((width * rmLow + offset).toFloat())
-        gl_rm_high.setGuidelinePercent((width * rmHigh + offset).toFloat())
+//        gl_u_low.setGuidelinePercent((width * uLow + offset).toFloat())
+//        gl_u_high.setGuidelinePercent((width * uHigh + offset).toFloat())
+//        gl_rm_low.setGuidelinePercent((width * rmLow + offset).toFloat())
+//        gl_rm_high.setGuidelinePercent((width * rmHigh + offset).toFloat())
 
         val maxNOX = 0.2
         val noxPermitted1 = 0.168

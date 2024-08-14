@@ -1,5 +1,7 @@
 package org.rdeapp.pcdftester.Sinks
 
+import android.graphics.Color
+import android.util.Log
 import android.view.View
 import androidx.core.content.ContextCompat
 import de.unisaarland.loladrives.Fragments.HomeFragment
@@ -7,10 +9,23 @@ import de.unisaarland.loladrives.Fragments.RDE.RDEFragment
 import de.unisaarland.loladrives.R
 import kotlinx.android.synthetic.main.fragment_home.*
 import kotlinx.android.synthetic.main.fragment_r_d_e.*
+import kotlinx.android.synthetic.main.fragment_r_d_e_modify.viewFlipper
+import kotlinx.android.synthetic.main.motorway.motorwayDistance
+import kotlinx.android.synthetic.main.motorway.motorwayTime
+import kotlinx.android.synthetic.main.motorway.dynamicBarMotorway
+import kotlinx.android.synthetic.main.motorway.progressProportionMotorway
+import kotlinx.android.synthetic.main.rural.progressDynamicsRuralHigh
+import kotlinx.android.synthetic.main.rural.progressDynamicsRuralLow
+import kotlinx.android.synthetic.main.rural.progressProportionRural
+import kotlinx.android.synthetic.main.rural.ruralDistance
+import kotlinx.android.synthetic.main.rural.ruralTime
+import kotlinx.android.synthetic.main.urban.progressDynamicsUrbanHigh
+import kotlinx.android.synthetic.main.urban.progressDynamicsUrbanLow
+import kotlinx.android.synthetic.main.urban.progressProportionUrban
+import kotlinx.android.synthetic.main.urban.urbanDistance
+import kotlinx.android.synthetic.main.urban.urbanTime
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.ReceiveChannel
-import java.text.SimpleDateFormat
-import java.util.*
 
 /**
  * UI class for the [RDEFragment].
@@ -44,21 +59,40 @@ class RDEUIUpdater(
                 fragment.textViewTotalTime.visibility = View.VISIBLE
                 fragment.textViewTotalDistance.visibility = View.VISIBLE
                 fragment.textViewRDEPrompt.visibility = View.VISIBLE
+                fragment.viewFlipper.visibility = View.VISIBLE
+                fragment.progressProportionMotorway.visibility = View.VISIBLE
+                fragment.progressProportionMotorway.min = 23f
+                fragment.progressProportionMotorway.max = 44f
                 started = true
             }
+
+            // add listener for viewFlipper to swipe
+            fragment.viewFlipper.isClickable = true
+
+
 
             try {
                 // Update metric toggle button
                 metricSystem = fragment.metricToggleButton.isChecked
                 // Update all the simple TextViews.
                 fragment.textViewTotalDistance.text = convertMeters(outputs[0].toLong())
-                fragment.textViewUrbanDistance.text = convertMeters(outputs[1].toLong())
-                fragment.textViewRuralDistance.text = convertMeters(outputs[2].toLong())
-                fragment.textViewMotorwayDistance.text = convertMeters(outputs[3].toLong())
-                fragment.textViewUrbanTime.text = convertSeconds(outputs[4].toLong())
-                fragment.textViewRuralTime.text = convertSeconds(outputs[5].toLong())
-                fragment.textViewMotorwayTime.text = convertSeconds(outputs[6].toLong())
+                fragment.urbanDistance.text = convertMeters(outputs[1].toLong())
+                fragment.ruralDistance.text = convertMeters(outputs[2].toLong())
+                fragment.motorwayDistance.text = convertMeters(outputs[3].toLong())
+
+                fragment.urbanTime.text = convertSeconds(outputs[4].toLong())
+                fragment.ruralTime.text = convertSeconds(outputs[5].toLong())
+                fragment.motorwayTime.text = convertSeconds(outputs[6].toLong())
+
                 fragment.textViewTotalTime.text = convertSeconds(outputs[4].toLong() + outputs[5].toLong() + outputs[6].toLong())
+                val flipperView = fragment.viewFlipper
+                if(fragment.rdeValidator.currentSpeed < 60 && flipperView.displayedChild != 0) {
+                    flipperView.displayedChild = 0
+                } else if (fragment.rdeValidator.currentSpeed < 90 && flipperView.displayedChild != 1) {
+                    flipperView.displayedChild = 1
+                } else if (fragment.rdeValidator.currentSpeed >= 90 && flipperView.displayedChild != 2) {
+                    flipperView.displayedChild = 2
+                }
 
                 // Update the distance ProgressBars (total[0], urban[1], rural[2], motorway[3])
                 handleDistance(outputs[0], outputs[1], outputs[2], outputs[3])
@@ -84,13 +118,13 @@ class RDEUIUpdater(
                 fragment.promptHandler.handlePrompt(outputs[0], outputs[18] == 1.0, outputs[17] == 1.0)
 
                 fragment.trajectoryAnalyser.updateDynamicThresholds(
-                    outputs[7],
+                    outputs[7], // Average Speed
                     outputs[8],
                     outputs[9],
-                    outputs[13],
+                    outputs[13], // Low values
                     outputs[14],
                     outputs[15],
-                    outputs[10],
+                    outputs[10], // High values
                     outputs[11],
                     outputs[12]
                 )
@@ -172,13 +206,14 @@ class RDEUIUpdater(
         val rRpaThreshold = -0.0016 * r_avg_v + 0.1755
         val mRpaThreshold = if (m_avg_v <= 94.05) { -0.0016 * m_avg_v + 0.1755 } else { 0.025 }
 
-        val uRpaMarkerPercentage = uRpaThreshold / maxRpa
-        val rRpaMarkerPercentage = rRpaThreshold / maxRpa
-        val mRpaMarkerPercentage = mRpaThreshold / maxRpa
 
-        fragment.guidelineDynamicMarkerLowUrban.setGuidelinePercent(((lengthRpa * uRpaMarkerPercentage) + offsetRpa).toFloat())
-        fragment.guidelineDynamicMarkerLowRural.setGuidelinePercent(((lengthRpa * rRpaMarkerPercentage) + offsetRpa).toFloat())
-        fragment.guidelineDynamicMarkerLowMotorway.setGuidelinePercent(((lengthRpa * mRpaMarkerPercentage) + offsetRpa).toFloat())
+        val dynamicProgressMotorwayLow = fragment.dynamicBarMotorway
+        val dynamicProgressRuralLow = fragment.progressDynamicsRuralLow
+        val dynamicProgressUrbanLow = fragment.progressDynamicsUrbanLow
+
+//        dynamicProgressMotorwayLow.progress = (m_avg_v.toFloat() / maxRpa * 100).toFloat()
+        dynamicProgressRuralLow.progress = (r_avg_v.toFloat() / maxRpa * 100).toFloat()
+        dynamicProgressUrbanLow.progress = (u_avg_v.toFloat() / maxRpa * 100).toFloat()
 
         // PCT95 Threshold-Markers
         val offsetPct = 0.62
@@ -196,9 +231,13 @@ class RDEUIUpdater(
         val rPctMarkerPercentage = rPctThreshold / maxPct
         val mPctMarkerPercentage = mPctThreshold / maxPct
 
-        fragment.guidelineDynamicMarkerHighUrban.setGuidelinePercent(((lengthPct * uPctMarkerPercentage) + offsetPct).toFloat())
-        fragment.guidelineDynamicMarkerHighRural.setGuidelinePercent(((lengthPct * rPctMarkerPercentage) + offsetPct).toFloat())
-        fragment.guidelineDynamicMarkerHighMotorway.setGuidelinePercent(((lengthPct * mPctMarkerPercentage) + offsetPct).toFloat())
+        val dynamicProgressUrban = fragment.progressDynamicsUrbanHigh
+        val dynamicProgressRural = fragment.progressDynamicsRuralHigh
+//        val dynamicProgressMotorway = fragment.progressDynamicsMotorwayHigh
+
+        dynamicProgressUrban.progress = uPctThreshold.toFloat() / maxPct * 100
+        dynamicProgressRural.progress = rPctThreshold.toFloat() / maxPct * 100
+//        dynamicProgressMotorway.progress = mPctThreshold.toFloat() / maxPct * 100
 
         // Calculate RPA Ball Positions
         val uRpaBallPercentage = u_rpa / maxRpa
@@ -229,6 +268,17 @@ class RDEUIUpdater(
         fragment.guidelineCircleMotorwayHigh.setGuidelinePercent(
             (lengthPct * mPctBallPercentage + offsetPct).toFloat().coerceAtMost(boundaryPct.toFloat())
         )
+
+//        val urbanDynamicBar = fragment.urbanDynamicBar
+//        val dynamicBarRural = fragment.ruralDynamicBar
+        val dynamicBarMotorway = fragment.dynamicBarMotorway
+        dynamicBarMotorway.low = m_rpa.toFloat()
+        dynamicBarMotorway.high = m_va_pct.toFloat()
+        dynamicBarMotorway.max = mPctThreshold.toFloat()
+        dynamicBarMotorway.min = mRpaThreshold.toFloat()
+        dynamicBarMotorway.invalidate()
+        Log.d("DynamicBar", "Motorway: low: ${m_rpa.toFloat()} high: ${m_va_pct.toFloat()} max: ${mPctThreshold.toFloat()} min: ${mRpaThreshold.toFloat()}")
+
     }
 
     /**
@@ -265,13 +315,30 @@ class RDEUIUpdater(
         }
 
         // Distance Progress Bars
-        val urbanProgress = fragment.roundCornerProgressBarUrban
-        val ruralProgress = fragment.roundCornerProgressBarRural
-        val motorwayProgress = fragment.roundCornerProgressBarMotorway
+        val urbanProgress = fragment.progressProportionUrban
+        val ruralProgress = fragment.progressProportionRural
+        val motorwayProgress = fragment.progressProportionMotorway
 
-        urbanProgress.progress = urbanDistance.toFloat() / 1000 / expectedDistance.toFloat() * 2 * 100
-        ruralProgress.progress = ruralDistance.toFloat() / 1000 / expectedDistance.toFloat() * 2 * 100
-        motorwayProgress.progress = motorwayDistance.toFloat() / 1000 / expectedDistance.toFloat() * 2 * 100
+        val urbanPercent = urbanDistance.toFloat() / 1000 / expectedDistance.toFloat() * 100
+        val ruralPercent = ruralDistance.toFloat() / 1000 / expectedDistance.toFloat() * 100
+        val motorwayPercent = motorwayDistance.toFloat() / 1000 / expectedDistance.toFloat() * 100
+
+        urbanProgress.progress = urbanPercent
+        ruralProgress.progress = ruralPercent
+        motorwayProgress.percent = motorwayPercent
+
+
+        if (urbanProgress.progress > 44 || urbanProgress.progress  < 29) {
+            urbanProgress.circleProgressColor = Color.RED
+        } else {
+            urbanProgress.circleProgressColor = Color.GREEN
+        }
+        if (ruralProgress.progress > 43 || ruralProgress.progress  < 23) {
+            ruralProgress.circleProgressColor = Color.RED
+        } else {
+            ruralProgress.circleProgressColor = Color.GREEN
+        }
+
 
         fragment.distance = expectedDistance
     }
@@ -291,10 +358,14 @@ class RDEUIUpdater(
             val secs = seconds % 60
             return String.format("%02d:%02d:%02d", hours, minutes, secs)
         }
-    }
 
-    fun convert(value: Double, unit: String): String {
-        return "%.2f".format(value).replace(",", ".") + " $unit"
+        fun convert(value: Double, unit: String): String {
+            return "%.2f".format(value).replace(",", ".") + " $unit"
+        }
+
+        fun convertMeters(meters: Long): String {
+            return "%.2f".format(meters / 1000.0).replace(",", ".") + " km"
+        }
     }
 
 
