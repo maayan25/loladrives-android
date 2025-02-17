@@ -36,7 +36,9 @@ class TrajectoryAnalyser(
         lowerThreshold = 0.0,
         upperThreshold = 0.0,
         highRPA = 0.0,
-        lowRPA = 0.0
+        lowRPA = 0.0,
+        lowSpeed = 0.0,
+        highSpeed = 60.0
     )
 
     private var dynamicRuralThreshold: DynamicThresholdResult = DynamicThresholdResult(
@@ -45,7 +47,9 @@ class TrajectoryAnalyser(
         lowerThreshold = 0.0,
         upperThreshold = 0.0,
         highRPA = 0.0,
-        lowRPA = 0.0
+        lowRPA = 0.0,
+        lowSpeed = 60.0,
+        highSpeed = 90.0
     )
 
     private var dynamicMotorwayThreshold: DynamicThresholdResult = DynamicThresholdResult(
@@ -54,7 +58,9 @@ class TrajectoryAnalyser(
         lowerThreshold = 0.0,
         upperThreshold = 0.0,
         highRPA = 0.0,
-        lowRPA = 0.0
+        lowRPA = 0.0,
+        lowSpeed = 90.0,
+        highSpeed = 145.0
     )
 
 
@@ -344,12 +350,12 @@ class TrajectoryAnalyser(
                 // because the stopping time is not reliable.
                 return null
             }
-            stoppingPercentage > 0.06 && stoppingPercentage < 0.1 || stoppingPercentage < 0.06 -> {
+            stoppingPercentage > 0.06 && stoppingPercentage < 0.08 || stoppingPercentage < 0.06 -> {
                 // The stopping percentage is too low
                 return (0.06 - stoppingPercentage)
             }
 
-            stoppingPercentage > 0.26 && stoppingPercentage < 0.3 || stoppingPercentage > 0.3 -> {
+            stoppingPercentage > 0.28 && stoppingPercentage < 0.3 || stoppingPercentage > 0.3 -> {
                 // The stopping percentage is too high
                 return (0.3 - stoppingPercentage)
             }
@@ -589,17 +595,19 @@ class DynamicThresholdResult(
     var lowRPA: Double,
     var averageSpeed: Double = 0.0,
     var isValid : Boolean = false,
+    var lowSpeed: Double = 0.0,
+    var highSpeed: Double = 0.0
 ){
     fun isThresholdValid() {
         this.isValid = !belowLowerThreshold && !aboveUpperThreshold
     }
 
     fun computeAppropriateAverageSpeedLow(): Double {
-        return if (averageSpeed < 94.05) {
+        return if (averageSpeed < 94.05)  {
             if (averageSpeed == 0.0) {
                 0.0
             } else {
-                (lowRPA - 0.1755) / -0.0016
+                (0.1755 - lowRPA) / 0.0016
             }
         } else {
             94.05

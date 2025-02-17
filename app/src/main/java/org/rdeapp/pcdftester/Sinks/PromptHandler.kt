@@ -51,8 +51,15 @@ class PromptHandler (
      * Update the prompt for improving the driving style according to the received RTLola results.
      * @param totalDistance The total distance travelled so far.
      */
-    suspend fun handlePrompt(totalDistance: Double, isInvalid: Boolean, notRDEtest: Boolean) {
+    suspend fun handlePrompt(
+        totalDistance: Double,
+        isInvalid: Boolean,
+        notRDEtest: Boolean,
+        metricSystem: Boolean
+    ) {
         // Metric system to use
+        this.metricSystem = metricSystem
+        // Update the prompt generator
         promptGenerator.metricSystem = metricSystem
         // Check if the RDE test is still valid
         handleInvalidRDE()

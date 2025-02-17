@@ -3,9 +3,11 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.os.Build
 import android.util.AttributeSet
 import android.util.Log
 import android.view.View
+import androidx.annotation.RequiresApi
 
 class DynamicBar @JvmOverloads constructor(
     context: Context,
@@ -15,10 +17,16 @@ class DynamicBar @JvmOverloads constructor(
 
 
     // Default values for properties
-    var high: Float = 0f
-    var low: Float = 0f
-    var max: Float = 0f
-    var min: Float = 0f
+    var high: Float = 0.0f // Default value for high
+    var low: Float = 0.0f  // Default value for low
+    var max: Float = 0.0f
+    var min: Float = 0.0f
+
+    private val outlinePaint = Paint().apply {
+        color = Color.BLACK
+        style = Paint.Style.STROKE
+        strokeWidth = 4f
+    }
 
     private val minMaxPaint = Paint().apply {
         color = Color.BLACK
@@ -45,6 +53,7 @@ class DynamicBar @JvmOverloads constructor(
         color = Color.RED
     }
 
+    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         val barHeightStart = height.toFloat() * 0.25f
@@ -55,44 +64,52 @@ class DynamicBar @JvmOverloads constructor(
         val maxPosition = width.toFloat() * 0.85f
         val midPosition = width.toFloat() / 2
 
-        // Calculate the steps for low and high values
-        val stepsLow = low * (midPosition - minPosition) / (min-0.8f)
-//        val stepsLow = low * ((min-0.8f)/ (midPosition - minPosition))
-        val stepsHigh = (maxPosition - midPosition) * (high - midPosition) / (maxPosition - midPosition)
-        Log.d("DynamicBar", "mid P: $midPosition")
-        Log.d("DynamicBar", "min P: $minPosition")
-        Log.d("DynamicBar", "width: $width")
-        Log.d("DynamicBar", "d: ${(midPosition - minPosition)}")
-        Log.d("DynamicBar", "v: ${(min-0.8f)}")
-        Log.d("DynamicBar", "scale: ${(midPosition - minPosition) / (min-0.8f)}")
-        Log.d("DynamicBar", "Low: $stepsLow")
-        Log.d("DynamicBar", "High: $stepsHigh")
+
+        val normalizedLow = (low - min) / (1.2f - min)
+        val stepsLow = minPosition + (midPosition - minPosition) * normalizedLow
+        val stepsHigh = ((maxPosition - midPosition) / max) * high
 
         // Calculate the positions of the low and high values
-        val lowPosition = if (low >0.8) midPosition else minPosition - stepsLow
-        val highPosition = midPosition + stepsHigh
+        val lowPosition = if (low > 1.2) midPosition else stepsLow
+        var highPosition = midPosition + stepsHigh
+
+        if (highPosition > maxPosition) {
+            highPosition = maxPosition
+        }
 
         // Determine the color for the rectangle
         val rectLeft = lowPosition
         val rectRight = highPosition
+        canvas.drawRoundRect(0f, barHeightStart, width.toFloat(), barHeightEnd, 20f, 20f, outlinePaint)
+
 
         // Determine if the rectangle exceeds min/max
-        if (high > max && low < min) {
-            canvas.drawRect(rectLeft, barHeightStart, midPosition, barHeightEnd, belowMinPaint)
-            canvas.drawRect(midPosition, barHeightStart, rectRight, barHeightEnd, aboveMaxPaint)
-        } else if (high > max) {
-            Log.d("DynamicBar", "high > max")
-            Log.d("DynamicBar", "Left: $rectLeft")
-            Log.d("DynamicBar", "Right: $rectRight")
-
-            canvas.drawRect(rectLeft, barHeightStart, midPosition, barHeightEnd, normalPaint)
-            canvas.drawRect(midPosition, barHeightStart, rectRight, barHeightEnd, aboveMaxPaint)
-        } else if (low < min) {
-            canvas.drawRect(rectLeft, barHeightStart, midPosition, barHeightEnd, belowMinPaint)
-            canvas.drawRect(midPosition, barHeightStart, rectRight, barHeightEnd, normalPaint)
-        } else {
+        if (min == 0f) {
             canvas.drawRect(rectLeft, barHeightStart, rectRight, barHeightEnd, normalPaint)
         }
+        else if (max == 0f) {
+            canvas.drawRect(rectLeft, barHeightStart, rectRight, barHeightEnd, normalPaint)
+        } else {
+            if (high > max && low < min) {
+                canvas.drawRoundRect(rectLeft, barHeightStart, midPosition, barHeightEnd, 20f, 0f, belowMinPaint)
+                canvas.drawRoundRect(midPosition, barHeightStart, rectRight, barHeightEnd, 0f, 20f, aboveMaxPaint)
+            } else if (high > max && low > min) {
+                // max is exceeded and min is not
+                canvas.drawRoundRect(rectLeft, barHeightStart, midPosition, barHeightEnd, 20f, 0f, normalPaint)
+                canvas.drawRoundRect(midPosition, barHeightStart, rectRight, barHeightEnd, 0f, 20f, aboveMaxPaint)
+            } else if (high < max && low < min) {
+                // min is exceeded and max is not
+                canvas.drawRoundRect(rectLeft, barHeightStart, midPosition, barHeightEnd, 20f, 0f, belowMinPaint)
+                canvas.drawRoundRect(midPosition, barHeightStart, rectRight, barHeightEnd, 0f, 20f, normalPaint)
+            } else {
+                // neither min nor max is exceeded
+                canvas.drawRoundRect(rectLeft, barHeightStart, midPosition, barHeightEnd, 20f, 20f, normalPaint)
+            }
+        }
+        Log.d("low", low.toString())
+        Log.d("high", high.toString())
+        Log.d("min", min.toString())
+        Log.d("max", max.toString())
 
         // Calculate the line positions
         val lineHeightStart = height.toFloat() * 0.15f
@@ -103,15 +120,17 @@ class DynamicBar @JvmOverloads constructor(
         canvas.drawLine(maxPosition, lineHeightStart, maxPosition, lineHeightEnd, minMaxPaint)
 
         // Add labels for min and max
-        canvas.drawText(min.toString(), minPosition, height.toFloat(), labelPaint)
-        canvas.drawText(max.toString(), maxPosition, height.toFloat(), labelPaint)
+        val minLabel = String.format("%.2fm²/s³", min)
+        val maxLabel = String.format("%.2fm²/s³", max)
+        canvas.drawText(minLabel, minPosition, height.toFloat(), labelPaint)
+        canvas.drawText(maxLabel, maxPosition, height.toFloat(), labelPaint)
 
-        // Add labels for low and high values above the bar
-        val lowLabel = String.format("%.2fm²/s³", low)
-        val highLabel = String.format("%.2fm²/s³", high)
-        val labelOffset = width.toFloat() / 8
-        canvas.drawText(lowLabel, midPosition - labelOffset, barHeightStart - 10, labelPaint)
-        canvas.drawText(highLabel, midPosition + labelOffset, barHeightStart - 10, labelPaint)
+//        // Add labels for low and high values above the bar
+//        val lowLabel = String.format("%.2fm²/s³", low)
+//        val highLabel = String.format("%.2fm²/s³", high)
+//        val labelOffset = width.toFloat() / 8
+//        canvas.drawText(lowLabel, midPosition - labelOffset, barHeightStart - 10, labelPaint)
+//        canvas.drawText(highLabel, midPosition + labelOffset, barHeightStart - 10, labelPaint)
     }
 
 
