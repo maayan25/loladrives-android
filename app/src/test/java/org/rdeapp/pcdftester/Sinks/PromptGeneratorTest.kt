@@ -24,7 +24,7 @@ class PromptGeneratorTest {
             20.0, 30.0, 25.0)
     private var validState: List<Double> =
         listOf<Double>(0.34 * expectedDistance * 1000, 0.33 * expectedDistance * 1000, 0.20 * expectedDistance * 1000,
-            60.0, 30.0, 25.0)
+            60.0, 30.0, 25.0, 30.0, 65.0, 98.0, 0.0, 2.0)
 
     @Before
     fun setUp() {
@@ -38,7 +38,9 @@ class PromptGeneratorTest {
     @Test
     fun determinePromptInitialState() {
         trajectoryAnalyser.updateProgress(initialState[0], initialState[1], initialState[2],
-            initialState[3], initialState[4], initialState[5])
+            initialState[3].toLong(), initialState[4], initialState[5],
+            initialState[6], initialState[7], initialState[8], initialState[9], initialState[10])
+
         promptGenerator.determinePrompt(0.0, trajectoryAnalyser)
         assertEquals(promptGenerator.getPromptType(), PromptType.NONE)
         assertEquals(promptGenerator.getPromptText(), "Analysis will be available after a substantial amount of the test is completed.")
@@ -53,14 +55,16 @@ class PromptGeneratorTest {
     fun determinePromptNone() {
         // A valid state is a state where the constraints are not violated.
         trajectoryAnalyser.updateProgress(initialState[0], initialState[1], initialState[2],
-            initialState[3], initialState[4], initialState[5])
+            initialState[3].toLong(), initialState[4], initialState[5],
+        initialState[6], initialState[7], initialState[8], initialState[9], initialState[10])
         promptGenerator.determinePrompt(0.0, trajectoryAnalyser)
 
         Thread.sleep(1000) // Wait for 1 second
 
         // Update current state to be in the 1st third of the test still.
         trajectoryAnalyser.updateProgress(0.01, initialState[1], initialState[2],
-            initialState[3], 20.0, initialState[5])
+            initialState[3].toLong(), 20.0, initialState[5],
+            initialState[6], initialState[7], initialState[8], initialState[9], initialState[10])
         promptGenerator.determinePrompt(0.0, trajectoryAnalyser)
 
         // The prompt generator should generate a NONE prompt.
@@ -77,7 +81,8 @@ class PromptGeneratorTest {
     fun determinePromptSufficiency() {
         // A valid state is a state where the constraints are not violated.
         trajectoryAnalyser.updateProgress(earlyDistance, initialState[1], initialState[2],
-            sufficientState[3], sufficientState[4], sufficientState[5])
+            sufficientState[3].toLong(), sufficientState[4], sufficientState[5],
+        initialState[6], initialState[7], initialState[8], initialState[9], initialState[10])
         promptGenerator.determinePrompt(earlyDistance, trajectoryAnalyser)
 
         // The prompt generator should generate a sufficiency prompt.
@@ -93,7 +98,8 @@ class PromptGeneratorTest {
     fun determinePromptDrivingStyleUrban(){
         trajectoryAnalyser.updateProgress(
             0.1 * expectedDistance * 1000, validState[1], validState[2],
-            validState[3], 70.5, validState[5]
+            validState[3].toLong(), 70.5, validState[5],
+            initialState[6], initialState[7], initialState[8], initialState[9], initialState[10]
         ) // Urban distance isn't sufficient and Motorway and Rural are sufficient
 
         // Update the prompt generator with the current state.
@@ -112,7 +118,8 @@ class PromptGeneratorTest {
     fun determinePromptDrivingStyleRural(){
         trajectoryAnalyser.updateProgress(
             validState[0], 0.13 * expectedDistance * 1000, validState[2],
-            validState[3], 10.5, validState[5]
+            validState[3].toLong(), 10.5, validState[5],
+            initialState[6], initialState[7], initialState[8], initialState[9], initialState[10]
         ) // Rural distance isn't sufficient and Motorway and Urban are sufficient
 
         promptGenerator.determinePrompt(progressDistance, trajectoryAnalyser)
@@ -137,7 +144,8 @@ class PromptGeneratorTest {
             validState[0],
             validState[1],
             0.05 * expectedDistance * 1000,
-            validState[3], 70.0, validState[5]
+            validState[3].toLong(), 70.0, validState[5],
+            initialState[6], initialState[7], initialState[8], initialState[9], initialState[10]
         ) // Motorway distance isn't sufficient and Rural and Urban are sufficient
 
         promptGenerator.determinePrompt(progressDistance + 1000.0, trajectoryAnalyser)
@@ -155,7 +163,8 @@ class PromptGeneratorTest {
     fun determinePromptAverageUrbanSpeedTooHigh() {
         trajectoryAnalyser.updateProgress(
             0.1 * expectedDistance * 1000, validState[1], validState[2],
-            validState[3], validState[4], 45.0)
+            validState[3].toLong(), validState[4], 45.0,
+        initialState[6], initialState[7], initialState[8], initialState[9], initialState[10])
 
         // Update the prompt generator with the current state.
         promptGenerator.determinePrompt(progressDistance, trajectoryAnalyser)
@@ -174,7 +183,8 @@ class PromptGeneratorTest {
     fun determinePromptAverageUrbanSpeedTooLow() {
         trajectoryAnalyser.updateProgress(
             0.1 * expectedDistance * 1000, validState[1], validState[2],
-            validState[3], validState[4], 6.0)
+            validState[3].toLong(), validState[4], 6.0, initialState[6], initialState[7],
+            initialState[8], initialState[9], initialState[10])
 
         // Update the prompt generator with the current state.
         promptGenerator.determinePrompt(progressDistance, trajectoryAnalyser)
@@ -193,7 +203,9 @@ class PromptGeneratorTest {
     fun determinePromptAverageUrbanSpeedLow() {
         trajectoryAnalyser.updateProgress(
             0.1 * expectedDistance * 1000, validState[1], validState[2],
-            validState[3], validState[4], 18.0)
+            validState[3].toLong(), validState[4], 18.0,
+            initialState[6], initialState[7], initialState[8], initialState[9], initialState[10])
+
 
         // Update the prompt generator with the current state.
         promptGenerator.determinePrompt(progressDistance, trajectoryAnalyser)
@@ -212,7 +224,8 @@ class PromptGeneratorTest {
     fun determinePromptAverageUrbanSpeedHigh() {
         trajectoryAnalyser.updateProgress(
             0.1 * expectedDistance * 1000, validState[1], validState[2],
-            validState[3], validState[4], 37.4)
+            validState[3].toLong(), validState[4], 37.4,
+        initialState[6], initialState[7], initialState[8], initialState[9], initialState[10])
 
         // Update the prompt generator with the current state.
         promptGenerator.determinePrompt(progressDistance, trajectoryAnalyser)
@@ -231,7 +244,8 @@ class PromptGeneratorTest {
     fun determinePromptNoStoppingTime(){
         trajectoryAnalyser.updateProgress(
             0.13 * expectedDistance * 1000, validState[1], validState[2],
-            90.0, 1.0, validState[5]
+            90L, 1.0, validState[5],
+            initialState[6], initialState[7], initialState[8], initialState[9], initialState[10]
         )
 
         promptGenerator.determinePrompt(progressDistance, trajectoryAnalyser)
@@ -247,7 +261,8 @@ class PromptGeneratorTest {
     fun determinePromptVeryLowStoppingTime(){
         trajectoryAnalyser.updateProgress(
             0.13 * expectedDistance * 1000, validState[1], validState[2],
-            90.0, 0.0, validState[5]
+            90L, 0.0, validState[5],
+            initialState[6], initialState[7], initialState[8], initialState[9], initialState[10]
         )
 
         promptGenerator.determinePrompt(progressDistance, trajectoryAnalyser)
@@ -271,13 +286,15 @@ class PromptGeneratorTest {
     fun determinePromptLowStoppingTime(){
         trajectoryAnalyser.updateProgress(
             0.13 * expectedDistance * 1000, validState[1], validState[2],
-            20.0, 0.0, validState[5]
+            20L, 0.0, validState[5],
+            initialState[6], initialState[7], initialState[8], initialState[9], initialState[10]
         )
         promptGenerator.determinePrompt(progressDistance, trajectoryAnalyser)
         Thread.sleep(192300)  // Wait for 3.2 minutes
         trajectoryAnalyser.updateProgress(
             0.13 * expectedDistance * 1000, validState[1], validState[2],
-            20.0 + velocityProfile.getTimeDifference(), 0.0, validState[5]
+            (20.0 + velocityProfile.getTimeDifference()).toLong(), 0.0, validState[5],
+            initialState[6], initialState[7], initialState[8], initialState[9], initialState[10]
         )
         promptGenerator.determinePrompt(progressDistance + 5000.0, trajectoryAnalyser)
         // The prompt generator should generate a driving style prompt.
@@ -294,14 +311,16 @@ class PromptGeneratorTest {
     fun determinePromptHighStoppingTime(){
         trajectoryAnalyser.updateProgress(
             0.13 * expectedDistance * 1000, validState[1], validState[2],
-            20.0, 0.0, validState[5]
+            20L, 0.0, validState[5],
+            initialState[6], initialState[7], initialState[8], initialState[9], initialState[10]
         )
         promptGenerator.determinePrompt(progressDistance, trajectoryAnalyser)
 
         Thread.sleep(1520000)  // Wait for 22.5 minutes
         trajectoryAnalyser.updateProgress(
             0.13 * expectedDistance * 1000, validState[1], validState[2],
-            20.0 + velocityProfile.getTimeDifference(), 0.0, validState[5]
+            (20.0 + velocityProfile.getTimeDifference()).toLong(), 0.0, validState[5],
+            initialState[6], initialState[7], initialState[8], initialState[9], initialState[10]
         )
         promptGenerator.determinePrompt(progressDistance + 5000.0, trajectoryAnalyser)
         // The prompt generator should generate a driving style prompt.
@@ -319,7 +338,8 @@ class PromptGeneratorTest {
     fun determinePromptHighSpeed(){
         trajectoryAnalyser.updateProgress(
             validState[0], validState[1], 0.11 * expectedDistance * 1000,
-            validState[3], 130.1, validState[5]
+            validState[3].toLong(), 130.1, validState[5],
+            initialState[6], initialState[7], initialState[8], initialState[9], initialState[10]
         )
         promptGenerator.determinePrompt(progressDistance, trajectoryAnalyser)
         assertEquals(promptGenerator.getPromptType(), PromptType.HIGHSPEEDPERCENTAGE)
@@ -335,7 +355,8 @@ class PromptGeneratorTest {
     fun determinePromptAndSetPromptMotorway(){
         trajectoryAnalyser.updateProgress(
             validState[0], validState[1], 0.1 * expectedDistance * 1000,
-            validState[3], 145.1, validState[5]
+            validState[3].toLong(), 145.1, validState[5],
+            initialState[6], initialState[7], initialState[8], initialState[9], initialState[10]
         )
         // Generates a high speed prompt first
         promptGenerator.determinePrompt(progressDistance, trajectoryAnalyser)
@@ -344,7 +365,8 @@ class PromptGeneratorTest {
         Thread.sleep(33490) // Wait for 33.5 seconds
         trajectoryAnalyser.updateProgress(
             validState[0], validState[1], 0.1 * expectedDistance * 1000,
-            20 + velocityProfile.getTimeDifference(), 145.1, validState[5]
+            (20 + velocityProfile.getTimeDifference()).toLong(), 145.1, validState[5],
+            initialState[6], initialState[7], initialState[8], initialState[9], initialState[10]
         )
         promptGenerator.determinePrompt(progressDistance + 1000.0, trajectoryAnalyser)
         assertEquals(promptGenerator.getPromptType(), PromptType.HIGHSPEEDPERCENTAGE)
@@ -360,7 +382,8 @@ class PromptGeneratorTest {
     fun determinePromptVeryHighSpeed(){
         trajectoryAnalyser.updateProgress(
             validState[0], validState[1], 0.1 * expectedDistance * 1000,
-            validState[3], 145.1, validState[5]
+            validState[3].toLong(), 145.1, validState[5],
+            initialState[6], initialState[7], initialState[8], initialState[9], initialState[10]
         )
         promptGenerator.determinePrompt(progressDistance, trajectoryAnalyser)
 
@@ -368,7 +391,8 @@ class PromptGeneratorTest {
 
         trajectoryAnalyser.updateProgress(
             validState[0], validState[1], 0.1 * expectedDistance * 1000,
-            20 + velocityProfile.getTimeDifference(), 145.1, validState[5]
+            (20 + velocityProfile.getTimeDifference()).toLong(), 145.1, validState[5],
+            initialState[6], initialState[7], initialState[8], initialState[9], initialState[10]
         )
         promptGenerator.determinePrompt(progressDistance + 1000.0, trajectoryAnalyser)
 
@@ -385,7 +409,8 @@ class PromptGeneratorTest {
     fun setPromptTypeUrban(){
         trajectoryAnalyser.updateProgress(
             0.13 * expectedDistance * 1000, validState[1], validState[2],
-            90.0, 0.0, 18.0
+            90L, 0.0, 18.0,
+            initialState[6], initialState[7], initialState[8], initialState[9], initialState[10]
         ) // Stopping time is too low and average urban speed is close to being low
         promptGenerator.determinePrompt(progressDistance, trajectoryAnalyser)
 
@@ -395,7 +420,8 @@ class PromptGeneratorTest {
 
         trajectoryAnalyser.updateProgress(
             0.13 * expectedDistance * 1000, validState[1], validState[2],
-            90.5 + velocityProfile.getTimeDifference(), 0.0, 27.0
+            (90.5 + velocityProfile.getTimeDifference()).toLong(), 0.0, 27.0,
+            initialState[6], initialState[7], initialState[8], initialState[9], initialState[10]
         ) // Average Urban speed is valid and stopping time is still low
         promptGenerator.determinePrompt(progressDistance, trajectoryAnalyser)
 
