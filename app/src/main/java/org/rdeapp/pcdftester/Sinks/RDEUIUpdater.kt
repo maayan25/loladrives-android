@@ -7,10 +7,24 @@ import de.unisaarland.loladrives.Fragments.RDE.RDEFragment
 import de.unisaarland.loladrives.R
 import kotlinx.android.synthetic.main.fragment_home.*
 import kotlinx.android.synthetic.main.fragment_r_d_e.*
+import kotlinx.android.synthetic.main.fragment_r_d_e_modify.viewFlipper
+import kotlinx.android.synthetic.main.motorway.dynamicBarMotorway
+import kotlinx.android.synthetic.main.motorway.motorwayAverageSpeedValue
+import kotlinx.android.synthetic.main.motorway.motorwayDistanceValue
+import kotlinx.android.synthetic.main.motorway.motorwayTimeValue
+import kotlinx.android.synthetic.main.motorway.progressProportionMotorway
+import kotlinx.android.synthetic.main.rural.dynamicBarRural
+import kotlinx.android.synthetic.main.rural.progressProportionRural
+import kotlinx.android.synthetic.main.rural.ruralAverageSpeedValue
+import kotlinx.android.synthetic.main.rural.ruralDistanceValue
+import kotlinx.android.synthetic.main.rural.ruralTimeValue
+import kotlinx.android.synthetic.main.urban.dynamicBarUrban
+import kotlinx.android.synthetic.main.urban.progressProportionUrban
+import kotlinx.android.synthetic.main.urban.urbanAverageSpeedValue
+import kotlinx.android.synthetic.main.urban.urbanDistanceValue
+import kotlinx.android.synthetic.main.urban.urbanTimeValue
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.ReceiveChannel
-import java.text.SimpleDateFormat
-import java.util.*
 
 /**
  * UI class for the [RDEFragment].
@@ -29,6 +43,9 @@ class RDEUIUpdater(
     private val noxThr1 = 0.12 // [g/km]
     private val noxThr2 = 0.168 // [g/km]
 
+    private var metricSystem = true
+    private var swipedToRightTime : Long = 0L
+
     /**
      * Suspending function which receives (blocking) RTLola results over the [inputChannel] and updates the UI accordingly.
      */
@@ -42,19 +59,66 @@ class RDEUIUpdater(
                 fragment.textViewTotalTime.visibility = View.VISIBLE
                 fragment.textViewTotalDistance.visibility = View.VISIBLE
                 fragment.textViewRDEPrompt.visibility = View.VISIBLE
+                fragment.viewFlipper.visibility = View.VISIBLE
+                fragment.progressProportionMotorway.visibility = View.VISIBLE
+                fragment.progressProportionMotorway.min = 23f
+                fragment.progressProportionMotorway.max = 43f
+                fragment.progressProportionRural.visibility = View.VISIBLE
+                fragment.progressProportionRural.min = 23f
+                fragment.progressProportionRural.max = 43f
+                fragment.progressProportionUrban.visibility = View.VISIBLE
+                fragment.progressProportionUrban.min = 29f
+                fragment.progressProportionUrban.max = 44f
                 started = true
             }
 
+            // add listener for viewFlipper to swipe
+            fragment.viewFlipper.isClickable = true
+
+
+
             try {
+                // Update metric toggle button
+                metricSystem = fragment.metricToggleButton.isChecked
                 // Update all the simple TextViews.
                 fragment.textViewTotalDistance.text = convertMeters(outputs[0].toLong())
-                fragment.textViewUrbanDistance.text = convertMeters(outputs[1].toLong())
-                fragment.textViewRuralDistance.text = convertMeters(outputs[2].toLong())
-                fragment.textViewMotorwayDistance.text = convertMeters(outputs[3].toLong())
-                fragment.textViewUrbanTime.text = convertSeconds(outputs[4].toLong())
-                fragment.textViewRuralTime.text = convertSeconds(outputs[5].toLong())
-                fragment.textViewMotorwayTime.text = convertSeconds(outputs[6].toLong())
+                fragment.urbanDistanceValue.text = convertMeters(outputs[1].toLong())
+                fragment.ruralDistanceValue.text = convertMeters(outputs[2].toLong())
+                fragment.motorwayDistanceValue.text = convertMeters(outputs[3].toLong())
+
+                fragment.urbanTimeValue.text = convertSeconds(outputs[4].toLong())
+                fragment.ruralTimeValue.text = convertSeconds(outputs[5].toLong())
+                fragment.motorwayTimeValue.text = convertSeconds(outputs[6].toLong())
+
+                fragment.urbanAverageSpeedValue.text = convertSpeed(outputs[7])
+                fragment.ruralAverageSpeedValue.text = convertSpeed(outputs[8])
+                fragment.motorwayAverageSpeedValue.text = convertSpeed(outputs[9])
+
                 fragment.textViewTotalTime.text = convertSeconds(outputs[4].toLong() + outputs[5].toLong() + outputs[6].toLong())
+                val flipperView = fragment.viewFlipper
+                // Change view based on current speed if change is detected
+                if (checkSwipeRight()) {
+                    if(fragment.rdeValidator.currentSpeed < 60 && flipperView.displayedChild != 0) {
+                        flipperView.displayedChild = 0
+                    } else if (fragment.rdeValidator.currentSpeed >= 60 && fragment.rdeValidator.currentSpeed < 90 && flipperView.displayedChild != 1) {
+                        flipperView.displayedChild = 1
+                    } else if (fragment.rdeValidator.currentSpeed >= 90 && flipperView.displayedChild != 2) {
+                        flipperView.displayedChild = 2
+                    }
+                }
+
+                flipperView.setOnClickListener {
+                    if (flipperView.displayedChild == 0) {
+                        flipperView.displayedChild = 1
+                        swipedToRightTime = System.currentTimeMillis()
+                    } else if (flipperView.displayedChild == 1) {
+                        flipperView.displayedChild = 2
+                        swipedToRightTime = System.currentTimeMillis()
+                    } else {
+                        flipperView.displayedChild = 0
+                        swipedToRightTime = System.currentTimeMillis()
+                    }
+                }
 
                 // Update the distance ProgressBars (total[0], urban[1], rural[2], motorway[3])
                 handleDistance(outputs[0], outputs[1], outputs[2], outputs[3])
@@ -66,13 +130,31 @@ class RDEUIUpdater(
                     outputs[1],
                     outputs[2],
                     outputs[3],
+                    outputs[4].toLong(),
                     totalTime,
                     fragment.rdeValidator.currentSpeed,
-                    outputs[7]
+                    outputs[7],
+                    outputs[8],
+                    outputs[9],
+                    outputs[17],
+                    outputs[18]
                 )
 
                 // Update the prompt ProgressBars (total[0])
-                fragment.promptHandler.handlePrompt(outputs[0])
+                fragment.promptHandler.handlePrompt(outputs[0], outputs[18] == 1.0, outputs[17] == 1.0, metricSystem)
+
+                fragment.trajectoryAnalyser.updateDynamicThresholds(
+                    outputs[7], // Average Speed
+                    outputs[8],
+                    outputs[9],
+                    outputs[13], // Low values
+                    outputs[14],
+                    outputs[15],
+                    outputs[10], // High values
+                    outputs[11],
+                    outputs[12]
+                )
+
 
                 // Update the Dynamics-Markers (grey balls)
                 handleDynamics(
@@ -139,74 +221,41 @@ class RDEUIUpdater(
         m_va_pct: Double
     ) {
         // RPA Threshold-Markers
-        val offsetRpa = 0.35 // GuidelineDynamicsBarLow Percentage
-        val boundaryRpa = 0.605
-        val lengthRpa = boundaryRpa - offsetRpa
-
-        val maxRpa = 0.3 // Realistic maximum RPA
 
         // Calculate Horizontal Marker Positions
-        val uRpaThreshold = -0.0016 * u_avg_v + 0.1755
-        val rRpaThreshold = -0.0016 * r_avg_v + 0.1755
-        val mRpaThreshold = if (m_avg_v <= 94.05) { -0.0016 * m_avg_v + 0.1755 } else { 0.025 }
+        val uRpaThreshold = getMinimumDynamics(u_avg_v)
+        val rRpaThreshold = getMinimumDynamics(r_avg_v)
+        val mRpaThreshold = getMinimumDynamics(m_avg_v)
 
-        val uRpaMarkerPercentage = uRpaThreshold / maxRpa
-        val rRpaMarkerPercentage = rRpaThreshold / maxRpa
-        val mRpaMarkerPercentage = mRpaThreshold / maxRpa
 
-        fragment.guidelineDynamicMarkerLowUrban.setGuidelinePercent(((lengthRpa * uRpaMarkerPercentage) + offsetRpa).toFloat())
-        fragment.guidelineDynamicMarkerLowRural.setGuidelinePercent(((lengthRpa * rRpaMarkerPercentage) + offsetRpa).toFloat())
-        fragment.guidelineDynamicMarkerLowMotorway.setGuidelinePercent(((lengthRpa * mRpaMarkerPercentage) + offsetRpa).toFloat())
+        // Calculate maximum Dynamics using the average speed boundary
+        val uPctThreshold = getMaximumDynamics(u_avg_v)
+        val rPctThreshold = getMaximumDynamics(r_avg_v)
+        val mPctThreshold = getMaximumDynamics(m_avg_v)
 
-        // PCT95 Threshold-Markers
-        val offsetPct = 0.62
-        val boundaryPct = 0.88
-        val lengthPct = boundaryPct - offsetPct
 
-        val maxPct = 35
+        val dynamicBarUrban = fragment.dynamicBarUrban
+        val dynamicBarRural = fragment.dynamicBarRural
+        val dynamicBarMotorway = fragment.dynamicBarMotorway
 
-        // Calculate Horizontal Marker Positions
-        val uPctThreshold = 0.136 * u_avg_v + 14.44
-        val rPctThreshold = if (r_avg_v <= 74.6) { 0.136 * r_avg_v + 14.44 } else { 0.0742 * r_avg_v + 18.966 }
-        val mPctThreshold = 0.0742 * m_avg_v + 18.966
+        dynamicBarMotorway.low = m_rpa.toFloat()
+        dynamicBarMotorway.high = m_va_pct.toFloat()
+        dynamicBarMotorway.max = mPctThreshold.toFloat()
+        dynamicBarMotorway.min = mRpaThreshold.toFloat()
+        dynamicBarMotorway.invalidate()
 
-        val uPctMarkerPercentage = uPctThreshold / maxPct
-        val rPctMarkerPercentage = rPctThreshold / maxPct
-        val mPctMarkerPercentage = mPctThreshold / maxPct
+        dynamicBarUrban.low = u_rpa.toFloat()
+        dynamicBarUrban.high = u_va_pct.toFloat()
+        dynamicBarUrban.max = uPctThreshold.toFloat()
+        dynamicBarUrban.min = uRpaThreshold.toFloat()
+        dynamicBarUrban.invalidate()
 
-        fragment.guidelineDynamicMarkerHighUrban.setGuidelinePercent(((lengthPct * uPctMarkerPercentage) + offsetPct).toFloat())
-        fragment.guidelineDynamicMarkerHighRural.setGuidelinePercent(((lengthPct * rPctMarkerPercentage) + offsetPct).toFloat())
-        fragment.guidelineDynamicMarkerHighMotorway.setGuidelinePercent(((lengthPct * mPctMarkerPercentage) + offsetPct).toFloat())
+        dynamicBarRural.low = r_rpa.toFloat()
+        dynamicBarRural.high = r_va_pct.toFloat()
+        dynamicBarRural.max = rPctThreshold.toFloat()
+        dynamicBarRural.min = rRpaThreshold.toFloat()
+        dynamicBarRural.invalidate()
 
-        // Calculate RPA Ball Positions
-        val uRpaBallPercentage = u_rpa / maxRpa
-        val rRpaBallPercentage = r_rpa / maxRpa
-        val mRpaBallPercentage = m_rpa / maxRpa
-
-        fragment.guidelineCircleUrbanLow.setGuidelinePercent(
-            (lengthRpa * uRpaBallPercentage + offsetRpa).toFloat().coerceAtMost(boundaryRpa.toFloat())
-        )
-        fragment.guidelineCircleRuralLow.setGuidelinePercent(
-            (lengthRpa * rRpaBallPercentage + offsetRpa).toFloat().coerceAtMost(boundaryRpa.toFloat())
-        )
-        fragment.guidelineCircleMotorwayLow.setGuidelinePercent(
-            (lengthRpa * mRpaBallPercentage + offsetRpa).toFloat().coerceAtMost(boundaryRpa.toFloat())
-        )
-
-        // Calculate PCT Ball Positions
-        val uPctBallPercentage = u_va_pct / maxPct
-        val rPctBallPercentage = r_va_pct / maxPct
-        val mPctBallPercentage = m_va_pct / maxPct
-
-        fragment.guidelineCircleUrbanHigh.setGuidelinePercent(
-            (lengthPct * uPctBallPercentage + offsetPct).toFloat().coerceAtMost(boundaryPct.toFloat())
-        )
-        fragment.guidelineCircleRuralHigh.setGuidelinePercent(
-            (lengthPct * rPctBallPercentage + offsetPct).toFloat().coerceAtMost(boundaryPct.toFloat())
-        )
-        fragment.guidelineCircleMotorwayHigh.setGuidelinePercent(
-            (lengthPct * mPctBallPercentage + offsetPct).toFloat().coerceAtMost(boundaryPct.toFloat())
-        )
     }
 
     /**
@@ -243,35 +292,101 @@ class RDEUIUpdater(
         }
 
         // Distance Progress Bars
-        val urbanProgress = fragment.roundCornerProgressBarUrban
-        val ruralProgress = fragment.roundCornerProgressBarRural
-        val motorwayProgress = fragment.roundCornerProgressBarMotorway
+        val urbanProgress = fragment.progressProportionUrban
+        val ruralProgress = fragment.progressProportionRural
+        val motorwayProgress = fragment.progressProportionMotorway
 
-        urbanProgress.progress = urbanDistance.toFloat() / 1000 / expectedDistance.toFloat() * 2 * 100
-        ruralProgress.progress = ruralDistance.toFloat() / 1000 / expectedDistance.toFloat() * 2 * 100
-        motorwayProgress.progress = motorwayDistance.toFloat() / 1000 / expectedDistance.toFloat() * 2 * 100
+        val urbanPercent = urbanDistance.toFloat() / 1000 / expectedDistance.toFloat() * 100
+        val ruralPercent = ruralDistance.toFloat() / 1000 / expectedDistance.toFloat() * 100
+        val motorwayPercent = motorwayDistance.toFloat() / 1000 / expectedDistance.toFloat() * 100
+
+        urbanProgress.percent = urbanPercent
+        ruralProgress.percent = ruralPercent
+        motorwayProgress.percent = motorwayPercent
+        urbanProgress.invalidate()
+        ruralProgress.invalidate()
+        motorwayProgress.invalidate()
 
         fragment.distance = expectedDistance
     }
 
+    /**
+     * Get maximum Dynamics using the average speed.
+     */
+    private fun getMaximumDynamics(averageSpeed: Double): Double {
+        return if (averageSpeed < 74.6) {
+            if (averageSpeed == 0.0) {
+                0.0
+            } else {
+                0.136 * averageSpeed + 14.44
+            }
+        } else {
+            0.0742 * averageSpeed + 18.966
+        }
+    }
+
+    /**
+     * Get minimum Dynamics using the average speed.
+     */
+    private fun getMinimumDynamics(averageSpeed: Double): Double {
+        return if (averageSpeed < 94.05) {
+            if (averageSpeed == 0.0) {
+                0.0
+            } else {
+                -0.0016 * averageSpeed + 0.1755
+            }
+        } else {
+            0.025
+        }
+    }
+
+    /**
+     * Check if it has been swiped to the right for more than 5 seconds.
+     */
+    fun checkSwipeRight(): Boolean {
+        return  if (System.currentTimeMillis() - swipedToRightTime < 5000) {
+            false
+        } else if (System.currentTimeMillis() - swipedToRightTime > 5000) {
+            swipedToRightTime = 0L
+            true
+        } else {
+            true
+        }
+    }
+
+    fun convertMeters(meters: Long): String {
+        if (metricSystem){
+            return "%.2f".format(meters / 1000.0).replace(",", ".") + " km"
+        } else {
+            return "%.2f".format(meters / 1609.344).replace(",", ".") + " mi"
+        }
+    }
+
+    fun convertSpeed(speed: Double): String {
+        if (metricSystem){
+            return "%.2f".format(speed).replace(",", ".") + " km/h"
+        } else {
+            return "%.2f".format(speed * 0.621371).replace(",", ".") + " mph"
+        }
+    }
+
     companion object {
         fun convertSeconds(seconds: Long): String {
-            val millis: Long = seconds * 1000
-            val tz = TimeZone.getTimeZone("UTC")
-            val df = SimpleDateFormat("HH:mm:ss", Locale.GERMANY)
-            df.timeZone = tz
-            return df.format(Date(millis))
-        }
-
-        fun convertMeters(meters: Long): String {
-            val kilometers = meters / 1000.0
-            return "%.2f".format(kilometers) + " km".replace(",", ".")
+            val hours = seconds / 3600
+            val minutes = (seconds % 3600) / 60
+            val secs = seconds % 60
+            return String.format("%02d:%02d:%02d", hours, minutes, secs)
         }
 
         fun convert(value: Double, unit: String): String {
             return "%.2f".format(value).replace(",", ".") + " $unit"
         }
+
+        fun convertMeters(meters: Long): String {
+            return "%.2f".format(meters / 1000.0).replace(",", ".") + " km"
+        }
     }
+
 
 }
 

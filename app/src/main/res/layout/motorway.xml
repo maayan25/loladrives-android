@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <TextView
+        android:id="@+id/titleMotorway"
+        android:layout_width="wrap_content"
+        android:layout_height="70dp"
+        android:text="Motorway"
+        android:textSize="20pt"
+        app:layout_constraintBottom_toTopOf="@+id/motorwayDistance"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <TextView
+        android:id="@+id/motorwayDistance"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_marginStart="56dp"
+        android:text="Distance :"
+        android:textSize="10pt"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/titleMotorway" />
+
+    <TextView
+        android:id="@+id/motorwayDistanceValue"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_marginTop="8dp"
+        android:text="0"
+        android:textSize="10pt"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.522"
+        app:layout_constraintLeft_toLeftOf="@id/motorwayDistance"
+        app:layout_constraintStart_toEndOf="@+id/motorwayDistance"
+        app:layout_constraintTop_toBottomOf="@id/titleMotorway" />
+
+    <TextView
+        android:id="@+id/motorwayTime"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_marginStart="76dp"
+        android:text="Time :"
+        android:textSize="10pt"
+        app:layout_constraintRight_toRightOf="@+id/motorwayDistance"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/motorwayDistance" />
+
+    <TextView
+        android:id="@+id/motorwayTimeValue"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:text="0"
+        android:textSize="10pt"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.551"
+        app:layout_constraintLeft_toLeftOf="@id/motorwayTime"
+        app:layout_constraintStart_toEndOf="@+id/motorwayTime"
+        app:layout_constraintTop_toBottomOf="@id/motorwayDistanceValue" />
+
+    <TextView
+        android:id="@+id/motorwayAverageSpeed"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_marginStart="36dp"
+        android:layout_marginTop="4dp"
+        android:text="Average Speed :"
+        android:textSize="10pt"
+        app:layout_constraintRight_toRightOf="@+id/motorwayTime"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/motorwayTime" />
+
+
+    <TextView
+        android:id="@+id/motorwayAverageSpeedValue"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_marginTop="4dp"
+        android:text="0"
+        android:textSize="10pt"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.426"
+        app:layout_constraintLeft_toLeftOf="@id/motorwayAverageSpeed"
+        app:layout_constraintStart_toEndOf="@+id/motorwayAverageSpeed"
+        app:layout_constraintTop_toBottomOf="@id/motorwayTimeValue" />
+
+    <TextView
+        android:id="@+id/proportionText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="0dp"
+        android:layout_marginTop="20dp"
+        android:text="Distance Proportion:"
+        android:textSize="10pt"
+        app:layout_constraintBottom_toTopOf="@id/progressProportionMotorway"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/motorwayAverageSpeed" />
+
+    <de.unisaarland.loladrives.CustomObjects.ProportionBar
+        android:id="@+id/progressProportionMotorway"
+        android:layout_width="350dp"
+        android:layout_height="100dp"
+        android:layout_marginTop="20dp"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/motorwayAverageSpeed"
+        app:max="43"
+        app:min="23" />
+
+    <TextView
+        android:id="@+id/dynamicBarText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="0dp"
+        android:text="Dynamics:"
+        android:textSize="10pt"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/progressProportionMotorway" />
+
+    <de.unisaarland.loladrives.CustomObjects.DynamicBar
+        android:id="@+id/dynamicBarMotorway"
+        android:layout_width="350dp"
+        android:layout_height="100dp"
+        android:layout_margin="10dp"
+        android:layout_marginTop="10dp"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/progressProportionMotorway" />
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -24,11 +24,51 @@ class TrajectoryAnalyser(
     // Variables to keep track of the current state of the test
     private var desiredDrivingMode: DrivingMode = DrivingMode.URBAN
     private var totalTime: Double = 0.0
+    private var urbanTime: Long = 0L
     private var currentSpeed: Double = 0.0
     private var averageUrbanSpeed: Double = 0.0
+    private var averageRuralSpeed: Double = 0.0
+    private var averageMotorwaySpeed: Double = 0.0
+
+    private var dynamicUrbanThreshold: DynamicThresholdResult = DynamicThresholdResult(
+        belowLowerThreshold = false,
+        aboveUpperThreshold = false,
+        lowerThreshold = 0.0,
+        upperThreshold = 0.0,
+        highRPA = 0.0,
+        lowRPA = 0.0,
+        lowSpeed = 0.0,
+        highSpeed = 60.0
+    )
+
+    private var dynamicRuralThreshold: DynamicThresholdResult = DynamicThresholdResult(
+        belowLowerThreshold = false,
+        aboveUpperThreshold = false,
+        lowerThreshold = 0.0,
+        upperThreshold = 0.0,
+        highRPA = 0.0,
+        lowRPA = 0.0,
+        lowSpeed = 60.0,
+        highSpeed = 90.0
+    )
+
+    private var dynamicMotorwayThreshold: DynamicThresholdResult = DynamicThresholdResult(
+        belowLowerThreshold = false,
+        aboveUpperThreshold = false,
+        lowerThreshold = 0.0,
+        upperThreshold = 0.0,
+        highRPA = 0.0,
+        lowRPA = 0.0,
+        lowSpeed = 90.0,
+        highSpeed = 145.0
+    )
+
 
     // Variables to keep track of whether the test is invalid
     private var isInvalid: PromptType = PromptType.NONE
+
+    private var isValid: Double = 0.0
+    private var notRDETest: Double = 0.0
 
     /**
      * Update the analyser with data on the progress of the test according to the received RTLola results.
@@ -43,13 +83,20 @@ class TrajectoryAnalyser(
         urbanDistance: Double,
         ruralDistance: Double,
         motorwayDistance: Double,
+        urbanTime: Long,
         totalTime: Double,
         currentSpeed: Double,
-        averageUrbanSpeed: Double
+        averageUrbanSpeed: Double,
+        averageRuralSpeed: Double,
+        averageMotorwaySpeed: Double,
+        isValid: Double,
+        notRDETest: Double,
     ) {
         this.totalTime = totalTime
         this.currentSpeed = currentSpeed
         this.averageUrbanSpeed = averageUrbanSpeed
+        this.averageRuralSpeed = averageRuralSpeed
+        this.averageMotorwaySpeed = averageMotorwaySpeed
 
         // total distance travelled so far
         val totalDistance = urbanDistance + ruralDistance + motorwayDistance
@@ -72,6 +119,64 @@ class TrajectoryAnalyser(
         motorwaySufficient = motorwayProportion >= 0.18
         ruralSufficient = ruralProportion >= 0.18
         urbanSufficient = urbanProportion >= 0.23
+
+        // store the current state of the test
+        this.isValid = isValid
+        this.notRDETest = notRDETest
+        this.urbanTime = urbanTime / 60
+
+    }
+
+    /**
+     * Update the analyser with data regarding the dynamic thresholds of the RPA.
+     * @param averageUrbanSpeed The average speed of the vehicle in the urban driving mode.
+     * @param averageRuralSpeed The average speed of the vehicle in the rural driving mode.
+     * @param averageMotorwaySpeed The average speed of the vehicle in the motorway driving mode.
+     * @param urbanRPAHigh The high threshold of the RPA in the urban driving mode.
+     * @param urbanRPALow The low threshold of the RPA in the urban driving mode.
+     * @param ruralRPAHigh The high threshold of the RPA in the rural driving mode.
+     * @param ruralRPALow The low threshold of the RPA in the rural driving mode.
+     * @param motorwayRPAHigh The high threshold of the RPA in the motorway driving mode.
+     * @param motorwayRPALow The low threshold of the RPA in the motorway driving mode.
+     *
+     */
+    fun updateDynamicThresholds(
+        averageUrbanSpeed: Double,
+        averageRuralSpeed: Double,
+        averageMotorwaySpeed: Double,
+        urbanRPALow: Double,
+        ruralRPALow: Double,
+        motorwayRPALow: Double,
+        urbanRPAHigh: Double,
+        ruralRPAHigh: Double,
+        motorwayRPAHigh: Double,
+    ) {
+        this.averageUrbanSpeed = averageUrbanSpeed
+        this.averageRuralSpeed = averageRuralSpeed
+        this.averageMotorwaySpeed = averageMotorwaySpeed
+
+        dynamicUrbanThreshold.setThresholds(urbanRPALow, urbanRPAHigh, averageUrbanSpeed)
+        dynamicRuralThreshold.setThresholds(ruralRPALow, ruralRPAHigh, averageRuralSpeed)
+        dynamicMotorwayThreshold.setThresholds(motorwayRPALow, motorwayRPAHigh, averageMotorwaySpeed)
+
+        dynamicUrbanThreshold.computeThreshold(averageUrbanSpeed)
+        dynamicRuralThreshold.computeThreshold(averageRuralSpeed)
+        dynamicMotorwayThreshold.computeThreshold(averageMotorwaySpeed)
+
+        dynamicUrbanThreshold.isThresholdValid()
+    }
+
+    /**
+     * Get the dynamic threshold result for the appropriate driving mode.
+     * @param drivingMode The driving mode to get the dynamic threshold result for.
+     * @return the dynamic threshold result for the appropriate driving mode.
+     */
+    fun getDynamicThresholdResult(drivingMode: DrivingMode): DynamicThresholdResult {
+        return when (drivingMode) {
+            DrivingMode.URBAN -> dynamicUrbanThreshold
+            DrivingMode.RURAL -> dynamicRuralThreshold
+            DrivingMode.MOTORWAY -> dynamicMotorwayThreshold
+        }
     }
 
     /**
@@ -120,6 +225,12 @@ class TrajectoryAnalyser(
      */
     fun setDesiredDrivingMode(): DrivingMode {
         when {
+            urbanSufficient && ruralSufficient && motorwaySufficient -> {
+                desiredDrivingMode = currentDrivingMode()
+            }
+            !urbanSufficient && !ruralSufficient && !motorwaySufficient -> {
+                desiredDrivingMode = currentDrivingMode()
+            }
             urbanSufficient && !ruralSufficient && !motorwaySufficient -> {
                 desiredDrivingMode = chooseNextDrivingMode(DrivingMode.RURAL, DrivingMode.MOTORWAY)
             }
@@ -144,6 +255,13 @@ class TrajectoryAnalyser(
     }
 
     /**
+     * Update the desired driving mode according to the passed parameter.
+     */
+    fun updateDesiredDrivingMode(drivingMode: DrivingMode) {
+        desiredDrivingMode = drivingMode
+    }
+
+    /**
      * Choose which should be the next driving mode between 2 required driving modes.
      * If the current driving mode or the recently desired driving modes are the 1st option, choose it
      * to be the newly desired mode. Otherwise, choose the alternative.
@@ -155,7 +273,7 @@ class TrajectoryAnalyser(
         firstDrivingMode: DrivingMode,
         secondDrivingMode: DrivingMode
     ): DrivingMode {
-        return if (desiredDrivingMode == firstDrivingMode || currentDrivingMode() == firstDrivingMode) {
+        return if (currentDrivingMode() == firstDrivingMode) {
             firstDrivingMode
         } else {
             secondDrivingMode
@@ -205,9 +323,7 @@ class TrajectoryAnalyser(
      */
     private fun canHighSpeedPass(): Double? {
         val highSpeedDuration = velocityProfile.getHighSpeed() // in minutes
-        return if (totalTime < 15) {
-            0.0 // Don't check for high speed in the first 15 minutes of the test
-        } else if (highSpeedDuration > 5) {
+        return if (highSpeedDuration > 5) {
             0.0
         } else {
             if (totalTime + (5 - highSpeedDuration) <= 120) {
@@ -226,44 +342,25 @@ class TrajectoryAnalyser(
      */
     private fun isStoppingTimeValid(): Double? {
         val currentStoppingTime: Double = velocityProfile.getStoppingTime() // in minutes
-        val remainingTime = 120 - totalTime
-
-        if (totalTime < 15 || currentStoppingTime == 0.0) {
-            // Don't check for stopping time in the first 15 minutes of the test
-            // because the stopping percentage is not reliable.
-            return null
-        }
+        val stoppingPercentage = currentStoppingTime / urbanTime
 
         when {
-            currentStoppingTime > 0.3 * 120.0 && remainingTime < (0.3 * 120.0 - currentStoppingTime) -> {
-                // Stopping percentage is invalid and can't be decreased to pass
-                isInvalid = PromptType.STOPPINGPERCENTAGE
+            totalTime < 15.0 -> {
+                // Don't check for stopping time in the first 15 minutes of the test
+                // because the stopping time is not reliable.
                 return null
             }
-            currentStoppingTime < 0.06 * 90.0 && remainingTime < (0.06 * 90.0 - currentStoppingTime) -> {
-                // Stopping percentage is invalid and can't be increased to pass
-                isInvalid = PromptType.STOPPINGPERCENTAGE
-                return null
+            stoppingPercentage > 0.06 && stoppingPercentage < 0.08 || stoppingPercentage < 0.06 -> {
+                // The stopping percentage is too low
+                return (0.06 - stoppingPercentage)
             }
-            totalTime > 30 && currentStoppingTime < 0.02 * totalTime -> {
-                // Stopping percentage is very low and some of the test time has passed
-                return  0.0
-            }
-            currentStoppingTime >= 0.03 * 90.0 && currentStoppingTime < 0.06 * 120.0 -> {
-                // Stopping percentage (Between 2.7 and 7.2 minutes) is close to being valid but can be increased to pass
-                return  0.06 - (currentStoppingTime / 90.0)
-            }
-            currentStoppingTime > 0.25 * 90 && currentStoppingTime < 0.3 * 120 -> {
-                // Stopping percentage (between 22.5 and 36 minutes) is close to being invalid but can be decreased to pass
-                return (currentStoppingTime / 120) - 0.3
-            }
-            0.06 * totalTime <= currentStoppingTime && currentStoppingTime <= 0.3 * totalTime -> {
-                return null
-            }
-            else -> {
-                return null
+
+            stoppingPercentage > 0.28 && stoppingPercentage < 0.3 || stoppingPercentage > 0.3 -> {
+                // The stopping percentage is too high
+                return (0.3 - stoppingPercentage)
             }
         }
+        return null
     }
 
     /**
@@ -295,11 +392,11 @@ class TrajectoryAnalyser(
                 isInvalid = PromptType.AVERAGEURBANSPEED
                 return null
             }
-            averageUrbanSpeed > 35.0 && averageUrbanSpeed < 40.0 || averageUrbanSpeed > 40.0 -> {
+            averageUrbanSpeed > 38.0 && averageUrbanSpeed < 40.0 || averageUrbanSpeed > 40.0 -> {
                 // average speed is high and close to being invalid or exceeded the limit but can be decreased to pass
                 return 40.0 - averageUrbanSpeed
             }
-            averageUrbanSpeed > 15.0 && averageUrbanSpeed < 20.0 || averageUrbanSpeed < 15.0 -> {
+            averageUrbanSpeed > 15.0 && averageUrbanSpeed < 18.0 || averageUrbanSpeed < 15.0 -> {
                 // average speed is low and close to being invalid or exceeded the limit but can be increased to pass
                 return 15.0 - averageUrbanSpeed
             }
@@ -311,6 +408,13 @@ class TrajectoryAnalyser(
                 return null
             }
         }
+    }
+
+    /**
+     *
+     */
+    fun getStoppingPercentage(): Double {
+        return velocityProfile.getStoppingTime() / urbanTime
     }
 
     /**
@@ -387,21 +491,36 @@ class TrajectoryAnalyser(
     fun computeDuration(): Double {
         when (desiredDrivingMode) {
             DrivingMode.URBAN -> {
-                // Calculate the distance left to drive in urban mode with an average speed of 30 km/h
-                val urbanDistanceLeft = (0.44 - urbanProportion) * expectedDistance
-                return urbanDistanceLeft * 2
+                if (urbanSufficient) {
+                    val maxDistanceMore = (0.44 - urbanProportion) * expectedDistance
+                    return -(maxDistanceMore * 2)
+                } else {
+                    // Calculate the time left to drive in urban mode with an average speed of 30 km/h
+                    val urbanDistanceLeft = (0.23 - urbanProportion) * expectedDistance
+                    return urbanDistanceLeft * 2
+                }
             }
 
             DrivingMode.RURAL -> {
-                // Calculate the distance left to drive in rural mode with an average speed of 75 km/h
-                val ruralDistanceLeft = (0.43 - ruralProportion) * expectedDistance
-                return ruralDistanceLeft * 0.8
+                if (ruralSufficient) {
+                    val maxDistanceMore = (0.43 - ruralProportion) * expectedDistance
+                    return -(maxDistanceMore * 0.8)
+                } else {
+                    // Calculate the distance left to drive in rural mode with an average speed of 75 km/h
+                    val ruralDistanceLeft = (0.18 - ruralProportion) * expectedDistance
+                    return ruralDistanceLeft * 0.8
+                }
             }
 
             DrivingMode.MOTORWAY -> {
-                // Calculate the distance left to drive in motorway mode with an average speed of 115 km/h
-                val motorwayDistanceLeft = (0.43 - motorwayProportion) * expectedDistance
-                return motorwayDistanceLeft * 60 / 115
+                if (motorwaySufficient) {
+                    val maxDistanceMore = (0.43 - motorwayProportion) * expectedDistance
+                    return -(maxDistanceMore * 0.5)
+                } else {
+                    // Calculate the distance left to drive in motorway mode with an average speed of 120 km/h
+                    val motorwayDistanceLeft = (0.18 - motorwayProportion) * expectedDistance
+                    return motorwayDistanceLeft * 0.5
+                }
             }
         }
     }
@@ -409,7 +528,154 @@ class TrajectoryAnalyser(
     /**
      * Return total time the test has been running for
      */
-    fun getTotalTime(): Double{
+    fun getTotalTime(): Double {
         return totalTime
+    }
+
+    /**
+     * Return the current speed of the vehicle
+     */
+    fun getCurrentSpeed(): Double {
+        return currentSpeed
+    }
+
+    /**
+     * Get percentage of urban driving mode completed so far in two decimal places
+     */
+    fun getUrbanPercentage(): Double {
+        return (urbanProportion / 0.23) * 100
+    }
+
+    /**
+     * Get percentage of rural driving mode completed so far
+     */
+    fun getRuralPercentage(): Double {
+        return (ruralProportion / 0.18) * 100
+    }
+
+    /**
+     * Get percentage of motorway driving mode completed so far
+     */
+    fun getMotorwayPercentage(): Double {
+        return (motorwayProportion / 0.18) * 100
+    }
+
+    /**
+     * Get the current state of the test
+     */
+    fun getIsValid(): Double {
+        return isValid
+    }
+
+    /**
+     * Get the current state of the test
+     */
+    fun getNotRDETest(): Double {
+        return notRDETest
+    }
+
+    /**
+     *
+     */
+    fun getSufficient(drivingMode: DrivingMode): Boolean {
+        return when (drivingMode) {
+            DrivingMode.URBAN -> urbanSufficient
+            DrivingMode.RURAL -> ruralSufficient
+            DrivingMode.MOTORWAY -> motorwaySufficient
+        }
+    }
+}
+
+class DynamicThresholdResult(
+    var belowLowerThreshold: Boolean,
+    var aboveUpperThreshold: Boolean,
+    var lowerThreshold: Double,
+    var upperThreshold: Double,
+    var highRPA: Double,
+    var lowRPA: Double,
+    var averageSpeed: Double = 0.0,
+    var isValid : Boolean = false,
+    var lowSpeed: Double = 0.0,
+    var highSpeed: Double = 0.0
+){
+    fun isThresholdValid() {
+        this.isValid = !belowLowerThreshold && !aboveUpperThreshold
+    }
+
+    fun computeAppropriateAverageSpeedLow(): Double {
+        return if (averageSpeed < 94.05)  {
+            if (averageSpeed == 0.0) {
+                0.0
+            } else {
+                (0.1755 - lowRPA) / 0.0016
+            }
+        } else {
+            94.05
+        }
+    }
+    // Appropriate Average Speed High
+
+    fun computeAppropriateAverageSpeedHigh(): Double {
+        return if (averageSpeed < 74.6) {
+            if (averageSpeed == 0.0) {
+                0.0
+            } else {
+                (highRPA - 14.44) / 0.136
+            }
+        } else {
+            (highRPA - 18.966) /0.0742
+        }
+    }
+
+    fun computeThreshold(averageSpeed:Double){
+        val lowDynamics = calculateLowDynamics(averageSpeed)
+        val highDynamics = calculateHighDynamics(averageSpeed)
+
+        belowLowerThreshold = lowRPA < lowDynamics
+        aboveUpperThreshold = highRPA > highDynamics
+        lowerThreshold = lowDynamics
+        upperThreshold = highDynamics
+    }
+
+    /**
+     * Calculate the lower threshold based on average velocity of
+     * driving style.
+     * @param avg_speed The average velocity for a driving style
+     *                  (MOTORWAY, RURAL, URBAN)
+     */
+    private fun calculateLowDynamics(avg_speed: Double): Double {
+        return if (avg_speed < 94.05) {
+            if (avg_speed == 0.0) {
+                0.0
+            } else {
+                -0.0016 * avg_speed + 0.1755
+            }
+        } else {
+            0.025
+        }
+    }
+
+    /**
+     * Calculate the lower threshold based on average velocity of
+     * driving style.
+     * @param avg_speed The average velocity for a driving style
+     *                  (MOTORWAY, RURAL, URBAN)
+     */
+    private fun calculateHighDynamics(avg_speed: Double): Double {
+        return if (avg_speed < 74.6) {
+            if (avg_speed == 0.0) {
+                0.0
+            } else {
+                0.136 * avg_speed + 14.44
+            }
+        } else {
+            0.0742 * avg_speed + 18.966
+        }
+    }
+
+    fun setThresholds(lowRPA: Double, highRPA: Double, averageUrbanSpeed: Double) {
+        this.lowRPA = lowRPA
+        this.highRPA = highRPA
+        this.averageSpeed = averageUrbanSpeed
     }
 }

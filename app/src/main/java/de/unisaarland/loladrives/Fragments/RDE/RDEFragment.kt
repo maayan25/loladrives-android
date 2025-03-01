@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.Toast
+import android.widget.ToggleButton
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentTransaction
 import de.unisaarland.loladrives.MainActivity
@@ -27,6 +28,7 @@ import java.io.File
  * A simple [Fragment] subclass.
  */
 class RDEFragment : Fragment() {
+    lateinit var invalidRDEReason: String
     var distance = 83.0
     lateinit var trajectoryAnalyser: TrajectoryAnalyser
     lateinit var promptHandler: PromptHandler
@@ -34,10 +36,11 @@ class RDEFragment : Fragment() {
     lateinit var velocityProfile: VelocityProfile
     private var uiUpdaterJob: Job? = null
     private lateinit var activity: MainActivity
+    lateinit var metricToggleButton: ToggleButton
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_r_d_e, container, false)
+        return inflater.inflate(R.layout.fragment_r_d_e_modify, container, false)
     }
 
     @ExperimentalCoroutinesApi
@@ -45,6 +48,7 @@ class RDEFragment : Fragment() {
         activity = requireActivity() as MainActivity
         activity.title_textview.text = getString(R.string.rde)
         activity.backButton.setImageResource(R.drawable.back_arrow_icon)
+        metricToggleButton = activity.toggleMetric
 
         initIntervalMarkers(16.0 / distance)
         if (activity.tracking) {
@@ -196,10 +200,10 @@ class RDEFragment : Fragment() {
         val rmLow = maxOf(0.23, lowerBoundary) / max
         val rmHigh = maxOf(0.43, lowerBoundary) / max
 
-        gl_u_low.setGuidelinePercent((width * uLow + offset).toFloat())
-        gl_u_high.setGuidelinePercent((width * uHigh + offset).toFloat())
-        gl_rm_low.setGuidelinePercent((width * rmLow + offset).toFloat())
-        gl_rm_high.setGuidelinePercent((width * rmHigh + offset).toFloat())
+//        gl_u_low.setGuidelinePercent((width * uLow + offset).toFloat())
+//        gl_u_high.setGuidelinePercent((width * uHigh + offset).toFloat())
+//        gl_rm_low.setGuidelinePercent((width * rmLow + offset).toFloat())
+//        gl_rm_high.setGuidelinePercent((width * rmHigh + offset).toFloat())
 
         val maxNOX = 0.2
         val noxPermitted1 = 0.168

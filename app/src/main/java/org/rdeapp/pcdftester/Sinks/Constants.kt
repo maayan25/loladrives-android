@@ -17,6 +17,7 @@ enum class DrivingMode {
  * @property STOPPINGPERCENTAGE Prompt for stopping percentage to increase or decrease.
  * @property HIGHSPEEDPERCENTAGE Prompt for high speed percentage(Driving at 100km/h or more for at least 5 mins).
  * @property VERYHIGHSPEEDPERCENTAGE Prompt for very high speed percentage(Driving at 145km/h for a max of 3%).
+ * @property DYNAMICS Prompt for the constraint regarding high and low dynamics for each driving style.
  */
 enum class PromptType {
     NONE,
@@ -25,6 +26,8 @@ enum class PromptType {
     AVERAGEURBANSPEED,
     STOPPINGPERCENTAGE,
     HIGHSPEEDPERCENTAGE,
-    VERYHIGHSPEEDPERCENTAGE
+    VERYHIGHSPEEDPERCENTAGE,
+    INVALIDRDEREASON,
+    DYNAMICS
 
 }

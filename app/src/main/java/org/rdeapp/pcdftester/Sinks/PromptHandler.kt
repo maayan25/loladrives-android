@@ -3,6 +3,7 @@ package org.rdeapp.pcdftester.Sinks
 import android.graphics.Color
 import android.os.Build
 import android.speech.tts.TextToSpeech
+import android.util.Log
 import android.widget.Toast
 import androidx.fragment.app.FragmentTransaction
 import de.unisaarland.loladrives.Fragments.RDE.RDEFragment
@@ -22,6 +23,8 @@ class PromptHandler (
 
     // Text to speech object
     private var tts: TextToSpeech? = TextToSpeech(fragment.requireActivity(), this)
+    // Metric system to use
+    private var metricSystem: Boolean = fragment.metricToggleButton.isChecked
 
     // The distance that should be travelled in the RDE test
     private var expectedDistance = fragment.distance
@@ -32,21 +35,37 @@ class PromptHandler (
     // Used to determine the current prompt that should be displayed
     private var promptGenerator = PromptGenerator(expectedDistance)
 
+    // Values representing the different violations of the RDE test constraints
+    private var violations: Array<Double>? = null
+
     // Variables to store the current prompt
     private var currentPromptText: String = ""
     private var currentPromptType: PromptType? = null
     private var newPromptType: PromptType? = null
 
+    private var lastSpeechTime: Long = 0
+    private var lastSpeechPromptText: String = ""
+    private var lastSpeechAnalysisText: String = ""
+
     /**
      * Update the prompt for improving the driving style according to the received RTLola results.
      * @param totalDistance The total distance travelled so far.
      */
-    suspend fun handlePrompt(totalDistance: Double) {
+    suspend fun handlePrompt(
+        totalDistance: Double,
+        isInvalid: Boolean,
+        notRDEtest: Boolean,
+        metricSystem: Boolean
+    ) {
+        // Metric system to use
+        this.metricSystem = metricSystem
+        // Update the prompt generator
+        promptGenerator.metricSystem = metricSystem
         // Check if the RDE test is still valid
         handleInvalidRDE()
 
         // Determine the next instructions according to analysis of the trajectory driven.
-        generatePrompt(totalDistance)
+        generatePrompt(totalDistance, isInvalid, notRDEtest)
     }
 
     /**
@@ -61,7 +80,9 @@ class PromptHandler (
 
             // Only speak if the text has changed
             if (currentPromptText != promptGenerator.getPromptText()) {
-                speak()
+                speak(fragment.textViewRDEPrompt.text.toString())
+                lastSpeechTime = System.currentTimeMillis()
+                lastSpeechPromptText = fragment.textViewRDEPrompt.text.toString()
             }
         }
 
@@ -89,14 +110,28 @@ class PromptHandler (
      * Sets the TextViews for the RDE prompt and analysis depending on the PromptType.
      * Depending on the previous prompt type and the previous prompt text, the prompt is either spoken or not.
      */
-    private fun generatePrompt(totalDistance: Double) {
+    private fun generatePrompt(totalDistance: Double, isValidTest: Boolean, notRDEtest: Boolean) {
+
         // Update the prompt and analysis texts and colours
+        Log.d("PromptHandler", "generating prompt")
         updatePrompt(totalDistance)
         newPromptType = promptGenerator.getPromptType()
 
-        // Only speak if the text has changed and the prompt type has changed
-        if (currentPromptText != fragment.textViewRDEPrompt.text.toString() && currentPromptType != newPromptType){
-            speak()
+        // If the RDE test is not invalid and , create prompt telling the user that the test is invalid
+        if (isValidTest && !notRDEtest) {
+            fragment.textViewRDEPrompt.text = "Stop the RDE test and as the test is valid"
+            fragment.textViewRDEPrompt.setTextColor(Color.RED)
+        } else {
+            // Only speak if the text has changed and the prompt type has changed
+            if ((currentPromptText != fragment.textViewRDEPrompt.text.toString() && currentPromptType != newPromptType) || (getTimeDifference() > 120000 && currentPromptText != lastSpeechPromptText )) {
+                speak(fragment.textViewRDEPrompt.text.toString())
+                lastSpeechPromptText = fragment.textViewRDEPrompt.text.toString()
+                lastSpeechTime = System.currentTimeMillis()
+            } else if (getTimeDifference() > 120000 && currentPromptText == lastSpeechPromptText && fragment.textViewAnalysis.text.toString() != lastSpeechAnalysisText) {
+                speak(fragment.textViewAnalysis.text.toString())
+                lastSpeechAnalysisText = fragment.textViewRDEPrompt.text.toString()
+                lastSpeechTime = System.currentTimeMillis()
+            }
         }
 
         // Keep track of the last prompt type and text that was displayed
@@ -138,13 +173,22 @@ class PromptHandler (
      * Speak the text in the RDE prompt TextView.
      * If the SDK version is below LOLLIPOP, then a toast is shown that Text To Speech is not supported.
      */
-    private fun speak() {
-        val text = fragment.textViewRDEPrompt.text.toString() // Get the text from the RDE prompt TextView
+    private fun speak(text: String) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             tts!!.speak(text, TextToSpeech.QUEUE_FLUSH, null, "ID")
         } else {
-            Toast.makeText(fragment.requireActivity(), "This SDK version does not support Text To Speech.", Toast.LENGTH_LONG).show()
+            Toast.makeText(
+                fragment.requireActivity(),
+                "This SDK version does not support Text To Speech.",
+                Toast.LENGTH_LONG
+            ).show()
         }
     }
 
+    /**
+     * Calculate the time difference between the current time and the last time the prompt was spoken.
+     */
+    private fun getTimeDifference(): Long {
+        return System.currentTimeMillis() - lastSpeechTime
+    }
 }
